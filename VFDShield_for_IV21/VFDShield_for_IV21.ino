@@ -38,14 +38,14 @@ InputTerminal tm(sw_list, sizeof(sw_list));
 #define TIMER1_INTTIME  50      // タイマインタラプト周期
 #define DCDC_PWM  9             // DCDC PWM出力Pin
 #define DCDC_FDBA 3             // DCDC フィードバックAD入力Pin
-#define DCDC_OUTV 700           // 28v
-//#define DCDC_OUTV 550           // 22.5v
-//#define DCDC_OUTV 700           // 28v
+#define DCDC_OUTV 600           // 24.9v
+//#define DCDC_OUTV 550           // 22.8v
+//#define DCDC_OUTV 650           // 27v
 #define DCDC_PWM_PGAIN  4       // Pゲイン
 #define DCDC_PWM_IGAIN  2       // Iゲイン
 #define DCDC_PWM_IGAEN_MAX  200 // Iゲイン最大値
 #define DCDC_PWM_MAX  250       // PWM設定値上限
-
+unsigned char dcdc_runningf;    // DCDCコンバータ動作許可
 
 /* Err Code */
 #define ERR_NON        0      // エラーなし
@@ -127,6 +127,13 @@ unsigned char disp_ketapwm[] = {
 };
 #define DISP_KETAPWM_MAX sizeof(disp_ketapwm)
 #define DISP_PWM_MAX  15                  // 最大輝度0x0f
+unsigned char brightness_dig[8];    // 表示各桁輝度
+#define BR_MAX        15 // 最大輝度
+#define BR_MIN        0  // 最小輝度
+#define BR_ADJ_DIGUP  0  // 輝度調整桁変更
+#define BR_ADJ_BRUP   1  // 輝度UP
+#define BR_ADJ_BRDOWN 2  // 輝度DOWN
+
 
 //unsigned char i,j;
 unsigned char mode;      // 動作モード
@@ -205,21 +212,27 @@ unsigned char led_blink_sqf;        // LED点滅シーケンス
 #define LED_BLINKSQ_COM  2          // コマンド
 #define LED_BLINKSQ_SP2  3          // スペーサ２
 
+// 起動時電圧測定
+#define CPU_VCC_MAX  204    // 5.521V
+#define CPU_VCC_NOM  225    // 5.006V
+#define CPU_VCC_MIN  251    // 4.487V
+
 void setup() {
   int startmode_sw;
 
   Serial.begin(9600);
   while (!Serial) ; // wait for Arduino Serial Monitor
 
-  startmode_sw = digitalRead(sw_list[0]);  // 起動時SW1読込み
-
   mode = MODE_CLOCK;
-  second_counterw = int(1000000 / TIMER1_INTTIME);  // 1秒間の割り込み回数
-  count = 0;
   key_now = 0;
 
+  startmode_sw = digitalRead(sw_list[0]);  // 起動時SW1読込み
+
+  // Startup Error Check.
+  cpu_voltage_chk();
+
   // DCDC Setup
-  dcdc_ini();        // DCDC制御初期化
+  dcdc_ini();        // DCDC制御初期化 DCDCエラーチェック
 
   // LED Setup
   led_ini();
@@ -227,29 +240,37 @@ void setup() {
   // VFD Setup
   disp_ini();        // VFD表示初期化
 
+  // Timer Setup
+  second_counterw = int(1000000 / TIMER1_INTTIME);  // 1秒間の割り込み回数
+  count = 0;
+//  Timer1.initialize(TIMER1_INTTIME);      // 割り込み周期設定  dcdc_ini()で設定する。
   Timer1.attachInterrupt(int_count);
-//  MsTimer2::set(2, int_count); // 500ms period
-//  MsTimer2::start();
+  //  MsTimer2::set(2, int_count); // 500ms period
+  //  MsTimer2::start();
 
   // RTC Setup
   setSyncProvider(RTC.get);   // the function to get the time from the RTC
 
-  
   // mode Setup
   if (mode < MODE_ERR_) { // エラー発生なし
     if (startmode_sw == 0) { // 電源ON時SW1入力あり
       modeset(MODE_FILAMENT_SETUP);    // VFDフィラメント電圧調整
       Serial.println("Mode : Filament Setup.");
-      // LED表示 VFD表示調整モード
       // DCDC OFF
+      dcdc_runningf = OFF;
+      Serial.println("DCDC Converter : Stop.");
     }
     else {
       modeset(MODE_CLOCK);
-      Serial.println("Mode : Clock.");
+      dcdc_runningf = ON;
+      Serial.println("DCDC Converter : Start OK.");
     }
   }
   else {   // エラー発生
+      Serial.println("Starting ERROR.");
     // DCDC OFF
+      dcdc_runningf = OFF;
+      Serial.println("DCDC Converter : Stop.");
   }
 
 }
@@ -257,62 +278,19 @@ void setup() {
 void loop() {
 
   dcdc_ctr(DCDC_OUTV);        // DCDC制御
-  setSyncProvider(RTC.get);   // the function to get the time from the RTC
 
   rtc_chk();                  // RTC読み出し
   disp_datamake();            // 表示データ作成
-  tm.scan();
-  keyman();
+  tm.scan();                  // キー入力読込
+  keyman();                   // キー入力処理
 
-  led_man(mode);
+  led_man(mode);              // LED表示データ管理
 
-}
-
-void modeset(unsigned char setmode)
-{
-  if (setmode == MODE_CLOCK) {
-    mode = MODE_CLOCK;
-      Serial.println("Mode : Clock.");
-  }
-  else if (setmode == MODE_CLOCK_ADJ) {
-    adj_point = ADJ_HOUR;    // 時間調整から開始する
-    adj_runf = OFF;          // 調整実行フラグ初期化
-    adj_data[ADJ_HOUR - ADJ_HOUR] = hour();
-    adj_data[ADJ_MIN - ADJ_HOUR] = minute();
-    mode = MODE_CLOCK_ADJ;
-      Serial.println("Mode : Clock ADJ.");
-  }
-  else if (setmode == MODE_CAL) {
-    mode = MODE_CAL;
-      Serial.println("Mode : Calender.");
-  }
-  else if (setmode == MODE_CAL_ADJ) {
-    adj_point = ADJ_YEAR;    // 年調整から開始する
-    adj_runf = OFF;          // 調整実行フラグ初期化
-    //    adj_data[ADJ_YEAR - ADJ_YEAR] = 現在年;
-    //    adj_data[ADJ_MONTH - ADJ_YEAR] = 現在月;
-    //    adj_data[ADJ_DAY - ADJ_YEAR] = 現在日;
-    mode = MODE_CAL_ADJ;
-      Serial.println("Mode : Calender ADJ.");
-  }
-  else if (setmode == MODE_BRIGHTNESS_ADJ) {
-    adj_point = ADJ_BR1;     // 1桁目から開始する
-    adj_runf = OFF;          // 調整実行フラグ初期化
-    mode = MODE_BRIGHTNESS_ADJ;
-      Serial.println("Mode : Brightness ADJ.");
-  }
-  else if (setmode == MODE_BRIGHTNESS_SAVE) {
-//    brightness_eeprom_save();    // 輝度をEEPROMに保存
-    modeset(MODE_CLOCK);         // 動作モードを時計表示にする。
-  }
-  else if (setmode == MODE_FILAMENT_SETUP) {
-    mode = MODE_FILAMENT_SETUP;
-  }
-
-  return;
 }
 
 void rtc_chk(void) {
+  setSyncProvider(RTC.get);   // the function to get the time from the RTC
+
   date_time[0] = second();
   if (mode == MODE_CLOCK) {
     date_time[1] = minute();
@@ -322,19 +300,63 @@ void rtc_chk(void) {
     date_time[3] = day();
     //    date_time[4] = Rtc.weekdays();
     date_time[5] = month();
-    date_time[6] = year();
+    date_time[6] = year() % 100;
   }
-/*  else if (mode == MODE_RTC_TEST) {
-    date_time[1] = minute();
-    date_time[2] = hour();
-    date_time[3] = day();
-    //    date_time[4] = Rtc.weekdays();
-    date_time[5] = month();
-    date_time[6] = year();
-  }
-*/
+  /*  else if (mode == MODE_RTC_TEST) {
+      date_time[1] = minute();
+      date_time[2] = hour();
+      date_time[3] = day();
+      //    date_time[4] = Rtc.weekdays();
+      date_time[5] = month();
+      date_time[6] = year();
+    }
+  */
   return;
 
+}
+
+void modeset(unsigned char setmode)
+{
+  if (setmode == MODE_CLOCK) {
+    mode = MODE_CLOCK;
+    Serial.println("Mode : Clock.");
+  }
+  else if (setmode == MODE_CLOCK_ADJ) {
+    adj_point = ADJ_HOUR;    // 時間調整から開始する
+    adj_runf = OFF;          // 調整実行フラグ初期化
+    adj_data[ADJ_HOUR - ADJ_HOUR] = date_time[2];
+    adj_data[ADJ_MIN - ADJ_HOUR] = date_time[1] = minute();
+    mode = MODE_CLOCK_ADJ;
+    Serial.println("Mode : Clock ADJ.");
+  }
+  else if (setmode == MODE_CAL) {
+    mode = MODE_CAL;
+    Serial.println("Mode : Calender.");
+  }
+  else if (setmode == MODE_CAL_ADJ) {
+    adj_point = ADJ_YEAR;    // 年調整から開始する
+    adj_runf = OFF;          // 調整実行フラグ初期化
+    adj_data[ADJ_YEAR - ADJ_YEAR] = year()-2000;
+    adj_data[ADJ_MONTH - ADJ_YEAR] = date_time[5];
+    adj_data[ADJ_DAY - ADJ_YEAR] = date_time[3];
+    mode = MODE_CAL_ADJ;
+    Serial.println("Mode : Calender ADJ.");
+  }
+  else if (setmode == MODE_BRIGHTNESS_ADJ) {
+    adj_point = ADJ_BR1;     // 1桁目から開始する
+    adj_runf = OFF;          // 調整実行フラグ初期化
+    mode = MODE_BRIGHTNESS_ADJ;
+    Serial.println("Mode : Brightness ADJ.");
+  }
+  else if (setmode == MODE_BRIGHTNESS_SAVE) {
+    brightness_eeprom_save();    // 輝度をEEPROMに保存
+    modeset(MODE_CLOCK);         // 動作モードを時計表示にする。
+  }
+  else if (setmode == MODE_FILAMENT_SETUP) {
+    mode = MODE_FILAMENT_SETUP;
+  }
+
+  return;
 }
 
 void disp_datamake(void) {
@@ -363,18 +385,23 @@ void disp_datamake(void) {
   piriod_tmp[8] = 0x01;
 #else
   if (mode == MODE_CLOCK) {
-  // 時刻情報作成
-    clock_display(disp_tmp, piriod_tmp);
+    clock_display(disp_tmp, piriod_tmp);  // 時刻情報作成
   }
   else if (mode == MODE_CLOCK_ADJ) {
     clock_adj_dispdat_make(disp_tmp, piriod_tmp);
-    }
+  }
   else if (mode == MODE_CAL) {
     calender_display(disp_tmp, piriod_tmp);
-    }
-  else if (mode == MODE_CAL_ADJ) {}
-  else if (mode == MODE_BRIGHTNESS_ADJ) { brightness_adj_dispdat_make(disp_tmp, piriod_tmp); }
-  else if (mode == MODE_FILAMENT_SETUP) { disp_alloff(disp_tmp, piriod_tmp);}
+  }
+  else if (mode == MODE_CAL_ADJ) {
+    calender_adj_dispdat_make(disp_tmp, piriod_tmp);
+  }
+  else if (mode == MODE_BRIGHTNESS_ADJ) {
+    brightness_adj_dispdat_make(disp_tmp, piriod_tmp);
+  }
+  else if (mode == MODE_FILAMENT_SETUP) {
+    disp_alloff(disp_tmp, piriod_tmp);
+  }
 #endif
 
   noInterrupts();      // 割り込み禁止
@@ -408,17 +435,17 @@ void clock_display(unsigned char *disp_tmp, unsigned char *piriod_tmp)
   piriod_tmp[7] = 0x01;
   piriod_tmp[8] = 0x01;
 #else
-/*
-  disp_tmp[0] = date_time[0] % 10;
-  disp_tmp[1] = date_time[0] / 10;
-  disp_tmp[2] = date_time[1] % 10;
-  disp_tmp[3] = date_time[1] / 10;
-  disp_tmp[4] = date_time[2] % 10;
-  disp_tmp[5] = date_time[2] / 10;
-  disp_tmp[6] = DISP_K3;
-  disp_tmp[7] = DISP_K3;
-//  disp_tmp[8] = DISP_K3;
-*/
+  /*
+    disp_tmp[0] = date_time[0] % 10;
+    disp_tmp[1] = date_time[0] / 10;
+    disp_tmp[2] = date_time[1] % 10;
+    disp_tmp[3] = date_time[1] / 10;
+    disp_tmp[4] = date_time[2] % 10;
+    disp_tmp[5] = date_time[2] / 10;
+    disp_tmp[6] = DISP_K3;
+    disp_tmp[7] = DISP_K3;
+  //  disp_tmp[8] = DISP_K3;
+  */
   disp_tmp[0] = DISP_K3;
   disp_tmp[1] = date_time[0] % 10;
   disp_tmp[2] = date_time[0] / 10;
@@ -437,27 +464,27 @@ void clock_display(unsigned char *disp_tmp, unsigned char *piriod_tmp)
     disp_tmp[8] = DISP_K0;
   }
 
-//  piriod_tmp[0] = piriod_tmp[2] = piriod_tmp[4] = 0x01;
-//  piriod_tmp[1] = piriod_tmp[3] = piriod_tmp[5] = piriod_tmp[6] = piriod_tmp[7] = piriod_tmp[8] = 0x00;
+  //  piriod_tmp[0] = piriod_tmp[2] = piriod_tmp[4] = 0x01;
+  //  piriod_tmp[1] = piriod_tmp[3] = piriod_tmp[5] = piriod_tmp[6] = piriod_tmp[7] = piriod_tmp[8] = 0x00;
   piriod_tmp[1] = piriod_tmp[3] = piriod_tmp[5] = 0x01;
   piriod_tmp[0] = piriod_tmp[2] = piriod_tmp[4] = piriod_tmp[6] = piriod_tmp[7] = piriod_tmp[8] = 0x00;
 #endif
 
   return;
 }
-void disp_alloff(unsigned char *disp_tmp, unsigned char *piriod_tmp){
-  for(unsigned char i=0;i<9;i++){
+void disp_alloff(unsigned char *disp_tmp, unsigned char *piriod_tmp) {
+  for (unsigned char i = 0; i < 9; i++) {
     disp_tmp[i] = DISP_NON;
-    piriod_tmp[i]=0;
+    piriod_tmp[i] = 0;
   }
 
   return;
 }
 
-void brightness_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp){
-  for(unsigned char i=0;i<9;i++){
+void brightness_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp) {
+  for (unsigned char i = 0; i < 9; i++) {
     disp_tmp[i] = DISP_08;
-    piriod_tmp[i]=0x00;
+    piriod_tmp[i] = 0x00;
   }
   if (count >= (second_counterw / 2)) {
     // ピリオド消灯処理
@@ -470,6 +497,83 @@ void brightness_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_
 
   return;
 }
+void brightness_adj(unsigned char keyw)  // 時刻合わせ
+{
+  if (keyw == BR_ADJ_DIGUP) {  // 輝度調整桁変更
+    if (adj_point == ADJ_BR9) {
+      adj_point = ADJ_BR1;
+    }
+    else if ((adj_point >=  ADJ_BR1) && (adj_point <=  ADJ_BR8)) {
+      adj_point++;
+    }
+    else {
+      // 状態遷移エラー発生
+    }
+  }
+  else if (keyw == BR_ADJ_BRUP) { // 輝度UP
+    if (brightness_dig[adj_point - ADJ_BR1] < BR_MAX) {
+      brightness_dig[adj_point - ADJ_BR1]++;
+    }
+    else {
+      brightness_dig[adj_point - ADJ_BR1] == BR_MAX;
+    }
+  }
+  else if (keyw == BR_ADJ_BRDOWN) { // 輝度DOWN
+    if (brightness_dig[adj_point - ADJ_BR1] > BR_MIN) {
+      brightness_dig[adj_point - ADJ_BR1]--;
+    }
+    else {
+      brightness_dig[adj_point - ADJ_BR1] == BR_MIN;
+    }
+  }
+
+  return;
+}
+void brightness_ini(void)
+{
+  unsigned char i;
+  unsigned char tmpw;
+  
+  tmpw = 0x00;
+  
+  if(tmpw == 0x5a){
+    // 輝度情報EEPROM読み出し
+    brightness_eeprom_load();
+  }
+  else{
+    // EEPROM 初期化
+    
+    // 輝度情報初期化
+    for (i = 0; i < 9; i++) {
+      brightness_dig[i] = disp_ketapwm[i];
+    }
+    brightness_eeprom_save();
+  }
+
+
+  return;
+}
+void brightness_eeprom_load(void)    // 輝度をEEPROMから読み出し
+{
+
+  return;
+}
+void brightness_eeprom_save(void)    // 輝度をEEPROMに保存
+{
+  return;
+}
+
+void eerom_write(int address,unsigned char value)
+{
+  int read_value;
+  
+  read_value = EEPROM.read(address);
+  if(read_value != (int)value){
+    EEPROM.write(address, (int)value);
+  }
+  return;
+}
+
 
 
 /* キー入力処理 */
@@ -485,10 +589,10 @@ void keyman(void)
     switch (shortonw) {
       case 0x01:
         if (mode == MODE_BRIGHTNESS_ADJ) {
-//          brightness_adj(BR_ADJ_DIGUP);
+          brightness_adj(BR_ADJ_DIGUP);
         }
         else if (mode == MODE_CAL_ADJ) {
-//          calender_adj(CAL_ADJ_DIGUP);
+          calender_adj(CAL_ADJ_DIGUP);
         }
         else if (mode == MODE_CLOCK_ADJ) {
           clock_adj(CL_ADJ_DIGUP);
@@ -497,35 +601,35 @@ void keyman(void)
         break;
       case 0x02:
         if (mode == MODE_BRIGHTNESS_ADJ) {
-//          brightness_adj(BR_ADJ_BRUP);
+          //          brightness_adj(BR_ADJ_BRUP);
         }
         else if (mode == MODE_CAL_ADJ) {
-//          calender_adj(CAL_ADJ_UP);
+          calender_adj(CAL_ADJ_UP);
         }
         else if (mode == MODE_CLOCK_ADJ) {
           clock_adj(CL_ADJ_UP);
         }
         Serial.println("S2");
-//        digitalWrite(VFD_BLANKING, HIGH);
+        //        digitalWrite(VFD_BLANKING, HIGH);
         break;
       case 0x03:
-//        Serial.println("S3");
+        //        Serial.println("S3");
         break;
       case 0x04:
         if (mode == MODE_BRIGHTNESS_ADJ) {
-//          brightness_adj(BR_ADJ_BRDOWN);
+          //          brightness_adj(BR_ADJ_BRDOWN);
         }
         else if (mode == MODE_CAL_ADJ) {
-//          calender_adj(CAL_ADJ_DOWN);
+          calender_adj(CAL_ADJ_DOWN);
         }
         else if (mode == MODE_CLOCK_ADJ) {
           clock_adj(CL_ADJ_DOWN);
         }
-//        digitalWrite(VFD_BLANKING, LOW);
+        //        digitalWrite(VFD_BLANKING, LOW);
         Serial.println("S4");
         break;
       default:
-//        Serial.println("SOther");
+        //        Serial.println("SOther");
         break;
     }
     //    tm.shorton_keydataw = 0;    // 処理完了　キー入力情報クリア
@@ -546,13 +650,13 @@ void keyman(void)
         }
         else if (mode == MODE_CAL) {
           // カレンダー設定モードへ
-//          modeset(MODE_CAL_ADJ);
+          modeset(MODE_CAL_ADJ);
         }
         else if (mode == MODE_CAL_ADJ) {
           // カレンダー表示モードへ　設定反映せず
           modeset(MODE_CAL);
         }
-//        Serial.println("L1");
+        //        Serial.println("L1");
         break;
       case 0x02:
         if (mode == MODE_CLOCK) {
@@ -563,7 +667,7 @@ void keyman(void)
           // 時計表示モードへ
           modeset(MODE_CLOCK);
         }
-//        Serial.println("L2");
+        //        Serial.println("L2");
         break;
       case 0x03:
         if (mode == MODE_CLOCK) {
@@ -574,10 +678,10 @@ void keyman(void)
           // 輝度調整処理終了
           modeset(MODE_BRIGHTNESS_SAVE);
         }
-//        Serial.println("L3");
+        //        Serial.println("L3");
         break;
       default:
-//        Serial.println("LOther");
+        //        Serial.println("LOther");
         break;
     }
     //    tm.longon_keydataw = 0;    // 処理完了　キー入力情報クリア
@@ -607,7 +711,7 @@ void clock_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp) 
   // 調整桁点滅処理
   if (count >= (second_counterw / 2)) {
     // 消灯処理
-    if(adj_point == ADJ_HOUR){
+    if (adj_point == ADJ_HOUR) {
       disp_tmp[5] = disp_tmp[6] = DISP_NON;
     }
     else if (adj_point == ADJ_MIN) {
@@ -704,21 +808,39 @@ void calender_display(unsigned char *disp_tmp, unsigned char *piriod_tmp)
 
   return;
 }
-void calender_adj_dispdat_make(unsigned char *disp, unsigned char *piriod) // 時刻調整時表示データ作成
+void calender_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp) // 時刻調整時表示データ作成
 {
   // 調整用表示データ作成
-  disp[0] = adj_data[ADJ_DAY - ADJ_YEAR] % 10;
-  disp[1] = adj_data[ADJ_DAY - ADJ_YEAR] / 10;
-  disp[2] = 13;
-  disp[3] = adj_data[ADJ_MONTH - ADJ_YEAR] % 10;
-  disp[4] = adj_data[ADJ_MONTH - ADJ_YEAR] / 10;
-  disp[5] = 13;
-  disp[6] = adj_data[ADJ_YEAR - ADJ_YEAR] % 10;
-  disp[7] = adj_data[ADJ_YEAR - ADJ_YEAR] / 10;  //現在年;
+  disp_tmp[0] = adj_data[ADJ_DAY - ADJ_YEAR] % 10;
+  disp_tmp[1] = adj_data[ADJ_DAY - ADJ_YEAR] / 10;
+  disp_tmp[2] = DISP_K1;
+  disp_tmp[3] = adj_data[ADJ_MONTH - ADJ_YEAR] % 10;
+  disp_tmp[4] = adj_data[ADJ_MONTH - ADJ_YEAR] / 10;
+  disp_tmp[5] = DISP_K1;
+  disp_tmp[6] = adj_data[ADJ_YEAR - ADJ_YEAR] % 10;
+  disp_tmp[7] = adj_data[ADJ_YEAR - ADJ_YEAR] / 10;  //現在年;
+  disp_tmp[8] = DISP_NON;
 
   // 調整桁点滅処理
-  
-  
+  if (count >= (second_counterw / 2)) {
+    // 消灯処理
+    if (adj_point == ADJ_YEAR) {
+      disp_tmp[6] = disp_tmp[7] = DISP_NON;
+    }
+    else if (adj_point == ADJ_MONTH) {
+      disp_tmp[3] = disp_tmp[4] = DISP_NON;
+    }
+    else if (adj_point == ADJ_DAY) {
+      disp_tmp[0] = disp_tmp[1] = DISP_NON;
+    }
+  }
+
+  piriod_tmp[1] = piriod_tmp[3] = piriod_tmp[5] = 0x00;
+  piriod_tmp[0] = piriod_tmp[2] = piriod_tmp[4] = piriod_tmp[6] = piriod_tmp[7] = piriod_tmp[8] = 0x00;
+
+  // 調整桁点滅処理
+
+
   return;
 }
 void calender_adj(unsigned char keyw)  // カレンダー合わせ
@@ -737,6 +859,10 @@ void calender_adj(unsigned char keyw)  // カレンダー合わせ
       // 終了処理
       if (adj_runf == ON) {  // 調整実行された
         //RTCに反映
+        tim.Day = adj_data[ADJ_DAY - ADJ_YEAR];
+        tim.Month = adj_data[ADJ_MONTH - ADJ_YEAR];
+        tim.Year = CalendarYrToTm(2000 + adj_data[ADJ_YEAR - ADJ_YEAR]);
+        RTC.write(tim);
       }
       modeset(MODE_CAL);    // カレンダー表示モードにする
     }
@@ -748,19 +874,19 @@ void calender_adj(unsigned char keyw)  // カレンダー合わせ
   else if (keyw == CAL_ADJ_UP) {
     adj_runf = ON;          // 調整実行フラグセット
     if ((adj_point == ADJ_YEAR) || (adj_point == ADJ_MONTH)) {
-      tmpp = adj_point - ADJ_HOUR;
-      if (adj_data[tmpp] >= adj_datamax[tmpp]) {
-        adj_data[tmpp] = adj_datamini[tmpp];   // 上限チェック
+      tmpp = adj_point - ADJ_YEAR;
+      if (adj_data[tmpp] >= adj_datamax[tmpp+2]) {   // 上限チェック
+        adj_data[tmpp] = adj_datamini[tmpp+2];
       }
       else {
         adj_data[tmpp]++;
       }
     }
     else if (adj_point == ADJ_DAY) {
-      tmpp = adj_point - ADJ_HOUR;
-      daymaxw = getmonthdays(adj_data[ADJ_YEAR], adj_data[ADJ_MONTH]);
-      if (adj_data[tmpp] >= daymaxw) {
-        adj_data[tmpp] = adj_datamini[tmpp];   // 上限チェック
+      tmpp = adj_point - ADJ_YEAR;
+      daymaxw = getmonthdays(adj_data[ADJ_YEAR-ADJ_YEAR], adj_data[ADJ_MONTH-ADJ_YEAR]);
+      if (adj_data[tmpp] >= daymaxw) {   // 上限チェック
+        adj_data[tmpp] = adj_datamini[tmpp+2];
       }
       else {
         adj_data[tmpp]++;
@@ -772,10 +898,19 @@ void calender_adj(unsigned char keyw)  // カレンダー合わせ
   }
   else if (keyw == CAL_ADJ_DOWN) {
     adj_runf = ON;          // 調整実行フラグセット
-    if ((adj_point == ADJ_YEAR) || (adj_point == ADJ_MONTH) || (adj_point == ADJ_DAY)) {
-      tmpp = adj_point - ADJ_HOUR;
-      if (adj_data[tmpp] <= adj_datamini[tmpp]) {
-        adj_data[tmpp] = adj_datamax[tmpp];   // 下限チェック
+    if ((adj_point == ADJ_YEAR) || (adj_point == ADJ_MONTH)) {
+       tmpp = adj_point - ADJ_YEAR;
+      if (adj_data[tmpp] <= adj_datamini[tmpp+2]) {   // 下限チェック
+        adj_data[tmpp] = adj_datamax[tmpp+2];
+      }
+      else {
+        adj_data[tmpp]--;
+      }
+    }
+    else if (adj_point == ADJ_DAY) {
+       tmpp = adj_point - ADJ_YEAR;
+      if (adj_data[tmpp] <= adj_datamini[tmpp+2]) {   // 下限チェック
+        adj_data[tmpp] = getmonthdays(adj_data[ADJ_YEAR-ADJ_YEAR], adj_data[ADJ_MONTH-ADJ_YEAR]);
       }
       else {
         adj_data[tmpp]--;
@@ -827,11 +962,11 @@ int dcdc_ini(void)
   for (i = 0; i < 10; i++) {
     val = analogRead(DCDC_FDBA);      // 電圧フィードバック入力
     vfdbw += val;
-//    Serial.print("Read data:");
-//    Serial.println(val);
+    //    Serial.print("Read data:");
+    //    Serial.println(val);
   }
-//  Serial.print("Read data_val:");
-//  Serial.println(vfdbw / 10);
+  //  Serial.print("Read data_val:");
+  //  Serial.println(vfdbw / 10);
   if (((vfdbw / 10) < 132) || ((vfdbw / 10) > 161)) {
     errw = ERR_DCDCFDB;
   }
@@ -842,16 +977,17 @@ int dcdc_ini(void)
     for (i = 0; i < 10; i++) {
       val = analogRead(DCDC_FDBA);      // 電圧フィードバック入力
       vfdbw += val;
-//      Serial.print("Read data:");
-//      Serial.println(val);
+      //      Serial.print("Read data:");
+      //      Serial.println(val);
     }
-//    Serial.print("Read data_val:");
-//    Serial.println(vfdbw / 10);
+    //    Serial.print("Read data_val:");
+    //    Serial.println(vfdbw / 10);
     if ((vfdbw / 10) < 161) {
       errw = ERR_DCDCDRV;
     }
 
   }
+  Timer1.pwm(DCDC_PWM, 0);       // PWM出力設定
   return (errw);
 }
 void dcdc_ctr(int setpwmw)
@@ -862,50 +998,60 @@ void dcdc_ctr(int setpwmw)
   int pwmidw;                // I項計算用ΔV
   static long pwmil = 0;     // I項Σdv
 
-  val = analogRead(DCDC_FDBA);      // 電圧フィードバック入力
-  set_pwmpw = setpwmw / DCDC_PWM_PGAIN;              // P計算
-  pwmidw = (setpwmw - val) * DCDC_PWM_IGAIN;         // dv計算
-  if (pwmil + (long)pwmidw > (DCDC_PWM_IGAEN_MAX * 0x10000)) {
-    pwmil = (DCDC_PWM_IGAEN_MAX * 0x10000);          // Σdv上限
-  }
-  else if (pwmil + (long)pwmidw < (-1 * DCDC_PWM_IGAEN_MAX * 0x10000)) {
-    pwmil = (-1 * DCDC_PWM_IGAEN_MAX * 0x10000);     // Σdv下限
+  if (dcdc_runningf != OFF) {
+
+    val = analogRead(DCDC_FDBA);      // 電圧フィードバック入力
+    set_pwmpw = setpwmw / DCDC_PWM_PGAIN;              // P計算
+    pwmidw = (setpwmw - val) * DCDC_PWM_IGAIN;         // dv計算
+    if (pwmil + (long)pwmidw > (DCDC_PWM_IGAEN_MAX * 0x10000)) {
+      pwmil = (DCDC_PWM_IGAEN_MAX * 0x10000);          // Σdv上限
+    }
+    else if (pwmil + (long)pwmidw < (-1 * DCDC_PWM_IGAEN_MAX * 0x10000)) {
+      pwmil = (-1 * DCDC_PWM_IGAEN_MAX * 0x10000);     // Σdv下限
+    }
+    else {
+      pwmil = pwmil + (long)pwmidw;                        // Σdv計算
+    }
+    pwmw = set_pwmpw + (pwmil >> 8);        // PWM = P+I
+
+    //  Serial.print("pwmw_ori:");
+    //  Serial.print(pwmw);
+
+    if (pwmw > DCDC_PWM_MAX) {
+      pwmw = DCDC_PWM_MAX; // PWM設定値上限
+    }
+    else if (pwmw < 0) {
+      pwmw = 0; // PWM設定値下限
+    }
   }
   else {
-    pwmil = pwmil + (long)pwmidw;                        // Σdv計算
+    pwmw = 0;
   }
-  pwmw = set_pwmpw + (pwmil >> 8);        // PWM = P+I
-
-//  Serial.print("pwmw_ori:");
-//  Serial.print(pwmw);
-
-  if (pwmw > DCDC_PWM_MAX) {pwmw = DCDC_PWM_MAX;}   // PWM設定値上限
-  else if (pwmw < 0) {pwmw = 0;}                    // PWM設定値下限
 
   noInterrupts();                   // 割り込み禁止
   Timer1.pwm(DCDC_PWM, pwmw);       // PWM出力設定
   interrupts();                     // 割り込み許可
 
- 
-/*  Serial.print("\tRead data:");
-  Serial.print(val);
 
-  Serial.print("\tPWMp:");
-  Serial.print(set_pwmpw);
+  /*  Serial.print("\tRead data:");
+    Serial.print(val);
 
-  Serial.print("\tPWMi:");
-  Serial.print(pwmil>>8);
+    Serial.print("\tPWMp:");
+    Serial.print(set_pwmpw);
 
-  Serial.print("\tpwmidw:");
-  Serial.print(pwmidw);
+    Serial.print("\tPWMi:");
+    Serial.print(pwmil>>8);
 
-  Serial.print("\tpwmil:");
-  Serial.print(pwmil);
+    Serial.print("\tpwmidw:");
+    Serial.print(pwmidw);
 
-  Serial.print("\tpwmw:");
-  Serial.print(pwmw);
-  Serial.println("\t");
-*/
+    Serial.print("\tpwmil:");
+    Serial.print(pwmil);
+
+    Serial.print("\tpwmw:");
+    Serial.print(pwmw);
+    Serial.println("\t");
+  */
   return;
 }
 /* -- end --*/
@@ -929,6 +1075,8 @@ void disp_ini(void)
   pinMode(VFD_BLANKING, OUTPUT);
   digitalWrite(VFD_BLANKING, LOW);
 
+  brightness_ini();                    // 輝度情報初期化
+
   return;
 }
 void disp_vfd_iv21(void)
@@ -938,7 +1086,7 @@ void disp_vfd_iv21(void)
   unsigned char ketapwm_tmpw;
   unsigned char dispketaw;
   unsigned long dispdata;
- 
+
 
   // 点灯する桁更新
   if (ketaw >= (DISP_KETAMAX - 1)) {
@@ -953,37 +1101,22 @@ void disp_vfd_iv21(void)
   // 各桁表示データ作成
   if (disp[dispketaw] <= FONT_MAX) {
     dispdata = font[disp[dispketaw]] | keta_dat[dispketaw];
-    if(disp_p[dispketaw] != 0x00){
+    if (disp_p[dispketaw] != 0x00) {
       dispdata |= DISP_H;
     }
   }
 
   // 各桁PWM処理
-  if(disp_ketapwm[dispketaw] <= DISP_PWM_MAX){
-    ketapwm_tmpw = disp_ketapwm[dispketaw];
+  if (disp_ketapwm[dispketaw] <= DISP_PWM_MAX) {
+    //    ketapwm_tmpw = disp_ketapwm[dispketaw];
+    ketapwm_tmpw = brightness_dig[dispketaw];
   }
-  else{
+  else {
     ketapwm_tmpw = DISP_PWM_MAX;
   }
-  if((pwm_countw & 0x0F)  >= disp_ketapwm[dispketaw] ){   // PWM処理
+  if ((pwm_countw & 0x0F)  >= disp_ketapwm[dispketaw] ) { // PWM処理
     dispdata = DISP_NON;
   }
-  
-
-
-  //  if(dispketaw != 8){ digitalWrite(DISP_KIGO, LOW); }
-
-  //  dispdata = 0x3C00;
-  //  dispdata = 0x60001;
-  /*
-    Serial.print(dispketaw);
-    Serial.print(":");
-    Serial.print(disp[dispketaw]);
-    Serial.print(":8:");
-    Serial.print(disp[8]);
-    Serial.print(":");
-    Serial.println(dispdata);
-  */
 
 #ifdef DISP_SHIFTOUT
   digitalWrite(RCK, LOW) ;
@@ -999,14 +1132,11 @@ void disp_vfd_iv21(void)
   digitalWrite(SS, HIGH) ;            // ラッチ信号を出す
 #endif
 
-  //  if(dispketaw == 8){ digitalWrite(DISP_KIGO, HIGH); }
-
   return;
 }
 /* -- end --*/
 
-/************************************/
-
+/* -- LED制御処理 -- */
 void led_ini() {
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
@@ -1060,7 +1190,7 @@ void led_man(unsigned char mode) {
 
   if (led_hedw != 0) {
     current_millis = millis();
-    
+
     if (current_millis - led_previous_millis >= led_interval) {
       led_previous_millis = current_millis;
       led_countw ++;
@@ -1097,36 +1227,86 @@ void led_man(unsigned char mode) {
           break;
       }
 
-  noInterrupts();
+      noInterrupts();
       if ( ((led_blink_sqf == LED_BLINKSQ_HED) || (led_blink_sqf == LED_BLINKSQ_COM))
            && (led_statew == OFF)) {
-       led_statew = ON;
+        led_statew = ON;
       }
       else {
         led_statew = OFF;
       }
-  interrupts();
+      interrupts();
     }
   }
   else {    // LED 常時消灯
-  noInterrupts();
+    noInterrupts();
     led_statew = OFF;
-  interrupts();
+    interrupts();
   }
 
   return;
 }
 
-void disp_led(void){
+void disp_led(void) {
   static char led_pwmcountw;
 
   led_pwmcountw++;
-  if(led_pwmcountw > LED_BRIGHT_MAX){ led_pwmcountw = 0; }
+  if (led_pwmcountw > LED_BRIGHT_MAX) {
+    led_pwmcountw = 0;
+  }
 
-  if(led_pwmcountw <= LED_BRIGHT){ digitalWrite(LED_PIN, !led_statew); }
-  else{ digitalWrite(LED_PIN, HIGH); }
+  if (led_pwmcountw <= LED_BRIGHT) {
+    digitalWrite(LED_PIN, !led_statew);
+  }
+  else {
+    digitalWrite(LED_PIN, HIGH);
+  }
 
   return;
+}
+
+/* -- CPU電源電圧チェック -- */
+void cpu_voltage_chk(void) {
+  unsigned int vcc_tmp;
+  float disp_vcc;
+
+  vcc_tmp = cpu_vcc();
+  if ((vcc_tmp < CPU_VCC_MIN) && (vcc_tmp > CPU_VCC_MAX)) { // 正常範囲外
+    modeset(MODE_ERR_CPU_VOLTAGE);
+  }
+  
+  disp_vcc = (1.1 * 10240.0) / (float)(vcc_tmp * 10);
+  Serial.print("CPU Voltage : ");
+  Serial.print(disp_vcc);
+  Serial.println("V");
+
+  return;
+}
+
+unsigned int cpu_vcc(void) {
+  long sum = 0;
+  adcSetup(0x4E);                    // Vref=AVcc, input=internal1.1V
+  for (int n = 0; n < 10; n++) {
+    sum = sum + adc();               // adcの値を読んで積分
+  }
+  return ((unsigned int)(sum / 10));
+}
+
+void adcSetup(byte data) {           // ADコンバーターの設定
+  ADMUX = data;                      // ADC Multiplexer Select Reg.
+  ADCSRA |= ( 1 << ADEN);            // ADC イネーブル
+  ADCSRA |= 0x07;                    // AD変換クロック　CK/128
+  delay(10);                         // 安定するまで待つ
+}
+
+unsigned int adc() {                 // ADCの値を読む
+  unsigned int dL, dH;
+  ADCSRA |= ( 1 << ADSC);            // AD変換開始
+  while (ADCSRA & ( 1 << ADSC) ) {   // 変換完了待ち
+  }
+  dL = ADCL;                         // LSB側読み出し
+  dH = ADCH;                         // MSB側
+  return dL | (dH << 8);             // 10ビットに合成した値を返す
 }
 
 /* -- Timer1割込 -- */
@@ -1138,7 +1318,6 @@ void int_count(void) {
   if (last_second != date_time[0]) {
     count = 0;
     last_second = date_time[0];
-    //    sirial_out();                        // RTCテスト用シリアル出力
   }
 
   disp_vfd_iv21();
