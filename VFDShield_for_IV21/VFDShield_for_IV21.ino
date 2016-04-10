@@ -38,7 +38,8 @@ InputTerminal tm(sw_list, sizeof(sw_list));
 #define TIMER1_INTTIME  50      // タイマインタラプト周期
 #define DCDC_PWM  9             // DCDC PWM出力Pin
 #define DCDC_FDBA 3             // DCDC フィードバックAD入力Pin
-#define DCDC_OUTV 600           // 24.9v
+//#define DCDC_OUTV 600           // 24.9v
+#define DCDC_OUTV 500             // xx.xv
 //#define DCDC_OUTV 550           // 22.8v
 //#define DCDC_OUTV 650           // 27v
 #define DCDC_PWM_PGAIN  4       // Pゲイン
@@ -54,16 +55,25 @@ unsigned char dcdc_runningf;    // DCDCコンバータ動作許可
 
 /* DISPLAY */
 unsigned long keta_dat[] = {
-  0x040000,    // 1
-  0x080000,    // 2
-  0x000001,    // 3
+  0x000004,    // 1
+  0x000008,    // 2
+  0x010000,    // 3
   0x008000,    // 4
-  0x400000,    // 5
+  0x000040,    // 5
   0x000100,    // 6
   0x004000,    // 7
   0x002000,    // 8
   0x000800     // 9
 };
+#define DISP_A  0x000001
+#define DISP_B  0x000002
+#define DISP_C  0x000010
+#define DISP_D  0x000080
+#define DISP_E  0x000200
+#define DISP_F  0x000400
+#define DISP_G  0x001000
+#define DISP_H  0x000020
+
 #define DISP_00  0
 #define DISP_01  1
 #define DISP_02  2
@@ -79,15 +89,6 @@ unsigned long keta_dat[] = {
 #define DISP_K2  12
 #define DISP_K3  13
 #define DISP_NON  13
-
-#define DISP_A  0x010000
-#define DISP_B  0x020000
-#define DISP_C  0x100000
-#define DISP_D  0x800000
-#define DISP_E  0x000200
-#define DISP_F  0x000400
-#define DISP_G  0x001000
-#define DISP_H  0x200000
 
 unsigned long font[] = {
   DISP_A | DISP_B | DISP_C | DISP_D | DISP_E | DISP_F,          // 0
@@ -1064,11 +1065,20 @@ void disp_ini(void)
   pinMode(SCK, OUTPUT) ;   // 制御するピンは全て出力に設定する
   pinMode(RCK, OUTPUT) ;
   pinMode(SI,  OUTPUT) ;
+  shiftOut(SI, SCK, MSBFIRST, 0) ;      // 初期化
+  shiftOut(SI, SCK, MSBFIRST, 0) ;      // 初期化
+  shiftOut(SI, SCK, MSBFIRST, 0) ;      // 初期化
+  digitalWrite(RCK, HIGH) ;             // ラッチ信号を出す
 #else
   SPI.begin() ;                         // ＳＰＩを行う為の初期化
   SPI.setBitOrder(MSBFIRST) ;           // ビットオーダー
   SPI.setClockDivider(SPI_CLOCK_DIV4) ; // クロックをシステムクロックの1/4で使用(16MHz/4)
   SPI.setDataMode(SPI_MODE0) ;          // クロック極性０(LOW)　クロック位相０(LOW)
+  digitalWrite(SS, LOW) ;
+  SPI.transfer(0) ;                     // 初期化
+  SPI.transfer(0) ;                     // 初期化
+  SPI.transfer(0) ;                     // 初期化
+  digitalWrite(SS, HIGH) ;              // ラッチ信号を出す
 #endif
   digitalWrite(SS, LOW) ;               // SS(CS)ラインをLOWにする
 
@@ -1081,54 +1091,51 @@ void disp_ini(void)
 }
 void disp_vfd_iv21(void)
 {
-  static unsigned char ketaw;
   static unsigned char pwm_countw;
   unsigned char ketapwm_tmpw;
-  unsigned char dispketaw;
-  unsigned long dispdata;
-
+  static unsigned char dispketaw;
+  unsigned long dispdata = 0;
 
   // 点灯する桁更新
-  if (ketaw >= (DISP_KETAMAX - 1)) {
-    ketaw = 0;
+  if (dispketaw >= (DISP_KETAMAX - 1)) {
+   dispketaw = 0;
     pwm_countw++;
   }
   else {
-    ketaw++;
+    dispketaw++;
   }
-  dispketaw = keta[ketaw] - 1;
 
-  // 各桁表示データ作成
+  // 表示データ作成
   if (disp[dispketaw] <= FONT_MAX) {
     dispdata = font[disp[dispketaw]] | keta_dat[dispketaw];
     if (disp_p[dispketaw] != 0x00) {
       dispdata |= DISP_H;
     }
   }
-
+  
   // 各桁PWM処理
   if (disp_ketapwm[dispketaw] <= DISP_PWM_MAX) {
-    //    ketapwm_tmpw = disp_ketapwm[dispketaw];
     ketapwm_tmpw = brightness_dig[dispketaw];
   }
   else {
     ketapwm_tmpw = DISP_PWM_MAX;
   }
   if ((pwm_countw & 0x0F)  >= disp_ketapwm[dispketaw] ) { // PWM処理
-    dispdata = DISP_NON;
+    dispdata = font[DISP_NON];
   }
 
+  // データ転送
 #ifdef DISP_SHIFTOUT
   digitalWrite(RCK, LOW) ;
-  shiftOut(SI, SCK, MSBFIRST, dispdata) ;       // 5=0b00000101(0x05) ８ビット出力する
-  shiftOut(SI, SCK, MSBFIRST, (dispdata >> 8)) ; // 5=0b00000101(0x05) ８ビット出力する
   shiftOut(SI, SCK, MSBFIRST, (dispdata >> 16)) ; // 5=0b00000101(0x05) ８ビット出力する
-  digitalWrite(RCK, HIGH) ;                     // ラッチ信号を出す
+  shiftOut(SI, SCK, MSBFIRST, (dispdata >> 8)) ;  // 5=0b00000101(0x05) ８ビット出力する
+  shiftOut(SI, SCK, MSBFIRST, dispdata) ;         // 5=0b00000101(0x05) ８ビット出力する
+  digitalWrite(RCK, HIGH) ;                       // ラッチ信号を出す
 #else
   digitalWrite(SS, LOW) ;
-  SPI.transfer(dispdata) ;            // 5=0b00000101(0x05) ８ビット出力する
-  SPI.transfer((dispdata >> 8)) ;     // 5=0b00000101(0x05) ８ビット出力する
   SPI.transfer((dispdata >> 16)) ;    // 5=0b00000101(0x05) ８ビット出力する
+  SPI.transfer((dispdata >> 8)) ;     // 5=0b00000101(0x05) ８ビット出力する
+  SPI.transfer(dispdata) ;            // 5=0b00000101(0x05) ８ビット出力する
   digitalWrite(SS, HIGH) ;            // ラッチ信号を出す
 #endif
 
