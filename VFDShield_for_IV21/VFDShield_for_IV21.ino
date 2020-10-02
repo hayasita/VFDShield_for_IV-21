@@ -39,7 +39,7 @@ InputTerminal tm(sw_list, sizeof(sw_list));
 #define DCDC_PWM  9             // DCDC PWM出力Pin
 #define DCDC_FDBA 3             // DCDC フィードバックAD入力Pin
 //#define DCDC_OUTV 600           // 24.9v
-#define DCDC_OUTV 500             // xx.xv
+#define DCDC_OUTV 650             // xx.xv
 //#define DCDC_OUTV 550           // 22.8v
 //#define DCDC_OUTV 650           // 27v
 #define DCDC_PWM_PGAIN  4       // Pゲイン
