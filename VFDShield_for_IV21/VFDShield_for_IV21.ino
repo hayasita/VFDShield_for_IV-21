@@ -106,9 +106,6 @@ unsigned long font[] = {
   DISP_F | DISP_G,                                              // ●－
   0x000000                                                     // NULL
 };
-#define FONT_MAX sizeof(font)
-unsigned int disp[9];          // 数値表示データ
-unsigned char disp_p[9];       // 各桁ピリオドデータ
 // VFD点灯順行列
 // 以下の行列の順にVFDは点灯する。
 // 特定の桁が暗かったり明るかったりする場合は、この行列で点灯頻度を変える事で調整可能
@@ -122,9 +119,13 @@ unsigned char keta[] = {
   1,1,2,3,4,5,      6,7,8,9,8,9,
   1,1,2,3,4,5, 9,      6,7,8,9,8,9
 };*/
-#define DISP_KETAMAX sizeof(keta)
 unsigned char disp_ketapwm[] = {
   10, 10, 10, 10, 10, 10, 10, 10, 10     // 0～15で設定
+#define FONT_MAX (sizeof(font) / sizeof(unsigned long))
+
+#define DISP_KETAMAX 9                        // VFD表示桁数
+unsigned long disp[DISP_KETAMAX];             // 数値表示データ
+unsigned char disp_p[DISP_KETAMAX];           // 各桁ピリオドデータ
 };
 #define DISP_KETAPWM_MAX sizeof(disp_ketapwm)
 #define DISP_PWM_MAX  15                  // 最大輝度0x0f
@@ -362,8 +363,10 @@ void modeset(unsigned char setmode)
 
 void disp_datamake(void) {
   unsigned int i;
-  unsigned char disp_tmp[9];
-  unsigned char piriod_tmp[8];
+  unsigned char disp_tmp[DISP_KETAMAX];       // 各桁表示データ
+  unsigned char piriod_tmp[DISP_KETAMAX];     // 各桁ピリオド
+  unsigned long dispdata_tmp[DISP_KETAMAX];   // 各桁表示データ(font情報)
+  unsigned long dispdata;                     // 表示データ作成用tmp
 
 #ifdef KEY_TEST
   disp_tmp[0] = key_now % 10;
@@ -405,10 +408,20 @@ void disp_datamake(void) {
   }
 #endif
 
+  // 表示データ作成
+  for (i = 0; i < 9; i++) {
+    if (disp_tmp[i] <= FONT_MAX) {
+      dispdata = font[disp_tmp[i]] | keta_dat[i];
+      if (piriod_tmp[i] != 0x00) {
+        dispdata |= DISP_H;
+      }
+    }
+    dispdata_tmp[i] = dispdata;
+  }
+
   noInterrupts();      // 割り込み禁止
   for (i = 0; i < 9; i++) {
-    disp[i] = disp_tmp[i];
-    disp_p[i] = piriod_tmp[i];
+    disp[i] = dispdata_tmp[i];
   }
   interrupts();        // 割り込み許可
 
@@ -1060,6 +1073,7 @@ void dcdc_ctr(int setpwmw)
 /* -- VFD表示 --*/
 void disp_ini(void)
 {
+  unsigned char i;
 
 #ifdef DISP_SHIFTOUT
   pinMode(SCK, OUTPUT) ;   // 制御するピンは全て出力に設定する
@@ -1087,6 +1101,10 @@ void disp_ini(void)
 
   brightness_ini();                    // 輝度情報初期化
 
+  for(i = 0; i < 9; i++){
+    disp[i] = 0;            // 数値表示データ初期化
+  }
+
   return;
 }
 void disp_vfd_iv21(void)
@@ -1106,12 +1124,7 @@ void disp_vfd_iv21(void)
   }
 
   // 表示データ作成
-  if (disp[dispketaw] <= FONT_MAX) {
-    dispdata = font[disp[dispketaw]] | keta_dat[dispketaw];
-    if (disp_p[dispketaw] != 0x00) {
-      dispdata |= DISP_H;
-    }
-  }
+  dispdata = disp[dispketaw];
   
   // 各桁PWM処理
   if (disp_ketapwm[dispketaw] <= DISP_PWM_MAX) {
