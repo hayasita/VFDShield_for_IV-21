@@ -106,17 +106,16 @@ unsigned long font[] = {
   DISP_F | DISP_G,                                              // ●－
   0x000000                                                     // NULL
 };
-unsigned char disp_ketapwm[] = {
-  10, 10, 10, 10, 10, 10, 10, 10, 10     // 0～15で設定
 #define FONT_MAX (sizeof(font) / sizeof(unsigned long))
 
 #define DISP_KETAMAX 9                        // VFD表示桁数
 unsigned long disp[DISP_KETAMAX];             // 数値表示データ
 unsigned char disp_p[DISP_KETAMAX];           // 各桁ピリオドデータ
+unsigned char disp_ketapwm[DISP_KETAMAX] = {  // 各桁輝度初期値
+  15, 15, 15, 15, 15, 15, 15, 15, 15          // 0～15で設定
 };
-#define DISP_KETAPWM_MAX sizeof(disp_ketapwm)
-#define DISP_PWM_MAX  15                  // 最大輝度0x0f
-unsigned char brightness_dig[8];    // 表示各桁輝度
+#define DISP_PWM_MAX  15                      // 最大輝度0x0f
+unsigned char brightness_dig[DISP_KETAMAX];   // 表示各桁輝度
 #define BR_MAX        15 // 最大輝度
 #define BR_MIN        0  // 最小輝度
 #define BR_ADJ_DIGUP  0  // 輝度調整桁変更
