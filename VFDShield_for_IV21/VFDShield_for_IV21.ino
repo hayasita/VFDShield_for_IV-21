@@ -106,19 +106,6 @@ unsigned long font[] = {
   DISP_F | DISP_G,                                              // ●－
   0x000000                                                     // NULL
 };
-// VFD点灯順行列
-// 以下の行列の順にVFDは点灯する。
-// 特定の桁が暗かったり明るかったりする場合は、この行列で点灯頻度を変える事で調整可能
-// 明るいVFDの番号を少なく、暗いVFDの番号を多くする。
-// VFD番号の順序はあまり気にしなくても大丈夫
-unsigned char keta[] = {
-  1, 2, 3, 4, 5, 6, 7, 8, 9
-};
-/*unsigned char keta[] = {
-  1,1,2,3,4,5,6,7,8,9,8,9,
-  1,1,2,3,4,5,      6,7,8,9,8,9,
-  1,1,2,3,4,5, 9,      6,7,8,9,8,9
-};*/
 unsigned char disp_ketapwm[] = {
   10, 10, 10, 10, 10, 10, 10, 10, 10     // 0～15で設定
 #define FONT_MAX (sizeof(font) / sizeof(unsigned long))
@@ -1347,8 +1334,3 @@ void int_count(void) {
 }
 
 /* -- end --*/
-
-
-
-
-
