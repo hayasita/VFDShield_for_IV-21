@@ -1095,10 +1095,10 @@ void disp_ini(void)
 }
 void disp_vfd_iv21(void)
 {
-  static unsigned char pwm_countw;
-  unsigned char ketapwm_tmpw;
-  static unsigned char dispketaw;
-  unsigned long dispdata = 0;
+  static unsigned char pwm_countw;        // PWMカウンタ
+  unsigned char ketapwm_tmpw;             // 輝度情報オーバーフロー対策
+  static unsigned char dispketaw;         // 表示桁
+  unsigned long dispdata = 0;             // 表示データ
 
   // 点灯する桁更新
   if (dispketaw >= (DISP_KETAMAX - 1)) {
