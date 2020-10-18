@@ -111,6 +111,8 @@ unsigned long font[] = {
 #define DISP_KETAMAX 9                        // VFD表示桁数
 unsigned long disp[DISP_KETAMAX];             // 数値表示データ
 unsigned char disp_p[DISP_KETAMAX];           // 各桁ピリオドデータ
+unsigned long disp_last[DISP_KETAMAX];        // 前回数値表示データ
+unsigned char disp_fadecount[DISP_KETAMAX];   // クロスフェードサイクルカウンタ
 unsigned char disp_ketapwm[DISP_KETAMAX] = {  // 各桁輝度初期値
   15, 15, 15, 15, 15, 15, 15, 15, 15          // 0～15で設定
 };
@@ -1095,10 +1097,15 @@ void disp_ini(void)
 }
 void disp_vfd_iv21(void)
 {
-  static unsigned char pwm_countw;        // PWMカウンタ
-  unsigned char ketapwm_tmpw;             // 輝度情報オーバーフロー対策
-  static unsigned char dispketaw;         // 表示桁
-  unsigned long dispdata = 0;             // 表示データ
+  static unsigned char pwm_countw;                // PWMカウンタ
+  unsigned char brightness_tmpw;                  // 輝度情報オーバーフロー対策
+  static unsigned char dispketaw;                 // 表示桁
+  unsigned long dispdata = 0;                     // 表示データ
+  static unsigned long lasttime[DISP_KETAMAX];    // クロスフェードカウンタ周期前回値
+  static unsigned long fade_cyclel[DISP_KETAMAX]; // クロスフェードサイクルカウンタ更新間隔
+  unsigned int disp_fade_modew;                   // クロスフェード有無
+
+  disp_fade_modew = 1;                            // 1:フェードあり 0:フェードなし
 
   // 点灯する桁更新
   if (dispketaw >= (DISP_KETAMAX - 1)) {
@@ -1109,18 +1116,48 @@ void disp_vfd_iv21(void)
     dispketaw++;
   }
 
-  // 各桁PWM処理
-  if (disp_ketapwm[dispketaw] <= DISP_PWM_MAX) {          // 輝度が仕様範囲内
-    ketapwm_tmpw = brightness_dig[dispketaw];
+  // 各桁輝度確認
+  if (brightness_dig[dispketaw] <= DISP_PWM_MAX) {                // 輝度が仕様範囲内
+    brightness_tmpw = brightness_dig[dispketaw];
   }
   else {
-    ketapwm_tmpw = DISP_PWM_MAX;                          // 輝度が仕様範囲外の場合、最大輝度設定
+    brightness_tmpw = DISP_PWM_MAX;                               // 輝度が仕様範囲外の場合、最大輝度設定
   }
-  
-  if ((pwm_countw & 0x0F)  >= ketapwm_tmpw ) {            // PWM処理
-    dispdata = font[DISP_NON];
+
+  // クロスフェード初期化
+  if((disp_last[dispketaw] != disp[dispketaw]) && (disp_fadecount[dispketaw] == 0)){  // 表示データ更新された && クロスフェードサイクルカウンタ未更新
+    if(disp_fade_modew != 0){
+      lasttime[dispketaw] = millis();                             // クロスフェードサイクルカウンタ更新間隔初期化
+      fade_cyclel[dispketaw] = 200 / brightness_tmpw;             // クロスフェードサイクルカウンタ更新間隔計算　200ms/輝度
+      disp_fadecount[dispketaw]++;                                // クロスフェードサイクルカウンタ更新
+    }else{
+      disp_last[dispketaw] = disp[dispketaw];                     // 前回データに今回データをコピー
+      disp_fadecount[dispketaw] = 0;                              // クロスフェードカウンタクリア
+    }
+  }
+  if(disp_fadecount[dispketaw] != 0){
+    if(millis() - lasttime[dispketaw] > fade_cyclel[dispketaw]){  // クロスフェードサイクルカウンタ更新時間チェック
+      lasttime[dispketaw] = millis();                             // サイクルカウンタ更新前回値更新
+      disp_fadecount[dispketaw]++;                                // クロスフェードサイクルカウンタ更新
+    }
+  }
+  //disp[0] = font[disp_fadecount[2]%10] | keta_dat[0];           // debug
+
+  // 各桁輝度決定PWM処理
+  if ((pwm_countw & 0x0F)  >= disp_ketapwm[dispketaw] ) {   // PWM処理
+    dispdata = font[DISP_NON];                              // PWM消灯
   }else{
-    dispdata = disp[dispketaw];
+    if(((pwm_countw & 0x0F) < disp_fadecount[dispketaw]) || (disp_fade_modew == 0)){    // PWM点灯 // クロスフェード今回：前回表示比率判定　暫定でpwm_countwを使用する
+      dispdata = disp[dispketaw];                           // 今回データを優先表示
+    }else{
+      dispdata = disp_last[dispketaw];                      // 前回データ表示
+    }
+  }
+
+  // クロスフェード終了判定
+  if(disp_fadecount[dispketaw] == disp_ketapwm[dispketaw]){ // クロスフェードカウンタ最大値（輝度）到達
+    disp_last[dispketaw] = disp[dispketaw];                 // 前回データに今回データをコピー
+    disp_fadecount[dispketaw] = 0;                          // クロスフェードカウンタクリア
   }
 
   // データ転送
