@@ -1109,18 +1109,18 @@ void disp_vfd_iv21(void)
     dispketaw++;
   }
 
-  // 表示データ作成
-  dispdata = disp[dispketaw];
-  
   // 各桁PWM処理
-  if (disp_ketapwm[dispketaw] <= DISP_PWM_MAX) {
+  if (disp_ketapwm[dispketaw] <= DISP_PWM_MAX) {          // 輝度が仕様範囲内
     ketapwm_tmpw = brightness_dig[dispketaw];
   }
   else {
-    ketapwm_tmpw = DISP_PWM_MAX;
+    ketapwm_tmpw = DISP_PWM_MAX;                          // 輝度が仕様範囲外の場合、最大輝度設定
   }
-  if ((pwm_countw & 0x0F)  >= disp_ketapwm[dispketaw] ) { // PWM処理
+  
+  if ((pwm_countw & 0x0F)  >= ketapwm_tmpw ) {            // PWM処理
     dispdata = font[DISP_NON];
+  }else{
+    dispdata = disp[dispketaw];
   }
 
   // データ転送
