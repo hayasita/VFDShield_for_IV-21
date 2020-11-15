@@ -620,46 +620,102 @@ void keyman(void)
 
   if (shortonw != 0) {
     switch (shortonw) {
-      case 0x01:
-        if (mode == MODE_BRIGHTNESS_ADJ) {
-          brightness_adj(BR_ADJ_DIGUP);
+
+      case 0b01:                            // SW1 Short ON
+        Serial.println("SW1 Short On");
+        if (mode_m == MODE_M_SET) {   // 設定モード
+          if (mode == MODE_CLOCK_ADJ) {           // 時計設定モード
+            modeset(MODE_CLOCK_ADJ_SET);            // 時計設定実行モードへ
+            Serial.println(" MODE_CLOCK_ADJ_SET chg.");
+          }
+          else if (mode == MODE_CLOCK_ADJ_SET) {  // 時計設定実行モード
+            clock_adj(CL_ADJ_DIGUP);                // 時計操作桁更新
+            Serial.println(" CLOCK ADJ DigUp.");
+          }
+          else if (mode == MODE_CAL_ADJ) {        // カレンダー設定モード
+            modeset(MODE_CAL_ADJ_SET);              // カレンダー実行モードへ
+            Serial.println(" MODE_CAL_ADJ_SET chg.");
+           }
+          else if (mode == MODE_CAL_ADJ_SET) {    // カレンダー実行モード
+            clock_adj(CAL_ADJ_DIGUP);               // カレンダー操作桁更新
+            Serial.println(" CAL ADJ DigUp.");
+          }
+          else if (mode == MODE_BRIGHTNESS_ADJ) { // 輝度設定モード
+            modeset(MODE_BRIGHTNESS_ADJ_SET);       // 輝度設定実行モードへ
+            Serial.println(" MODE_BRIGHTNESS_ADJ_SET chg.");
+          }
+          else if (mode == MODE_BRIGHTNESS_ADJ_SET) {  // 輝度操作実行モード
+            brightness_adj(BR_ADJ_DIGUP);           // 輝度操作桁更新
+            Serial.println(" BRIGHTNESS ADJ DigUp.");
+          }
+
+          Serial.print(" mode : ");
+          Serial.println(mode);
+          Serial.println(" SetMode Target chg.");
         }
-        else if (mode == MODE_CAL_ADJ) {
-          calender_adj(CAL_ADJ_DIGUP);
+        else if (mode_m == MODE_M_DISP) {   // 表示モード
+          if (mode == MODE_CLOCK){            // 時計表示
+            modeset(MODE_CAL);                  // カレンダー表示モードへ
+          }
+          else if(mode == MODE_CAL){          // カレンダー表示
+            modeset(MODE_CLOCK);                // 時計表示モードへ
+          }
+          else{                               // その他
+            modeset(MODE_CAL);                  // カレンダー表示モードへ
+          }
+
         }
-        else if (mode == MODE_CLOCK_ADJ) {
-          clock_adj(CL_ADJ_DIGUP);
-        }
-        Serial.println("S1");
+
         break;
-      case 0x02:
-        if (mode == MODE_BRIGHTNESS_ADJ) {
-          //          brightness_adj(BR_ADJ_BRUP);
+
+
+      case 0b10:                            // SW2 Short ON
+        Serial.println("SW2 Short On");
+        if (mode_m == MODE_M_SET) {           // 設定モード
+          if (mode == MODE_CLOCK_ADJ) {         // 時計設定モード
+            modeset(MODE_CAL_ADJ);                // カレンダー設定モードへ
+            Serial.println(" MODE_CAL_ADJ.");
+          }
+          else if(mode == MODE_CAL_ADJ){        // カレンダー設定モード
+            modeset(MODE_CLOCK_1224SEL);          // 時計表示 12h<>24h設定モードへ
+            Serial.println(" MODE_CLOCK_1224SEL.");
+          }
+          else if(mode == MODE_CLOCK_1224SEL){  // 時計表示 12h<>24h設定モード
+            modeset(MODE_FADETIME_ADJ);           // クロスフェード時間設定モードへ
+            Serial.println(" MODE_FADETIME_ADJ.");
+          }
+          else if(mode == MODE_FADETIME_ADJ){   // クロスフェード時間設定モード
+            modeset(MODE_BRIGHTNESS_ADJ);         // 輝度設定モードへ
+            Serial.println(" MODE_BRIGHTNESS_ADJ.");
+          }
+          else if(mode == MODE_BRIGHTNESS_ADJ){ // 輝度設定モード
+            modeset(MODE_CLOCK_ADJ);              // 時計設定モードへ
+            Serial.println(" MODE_CLOCK_ADJ.");
+          }
+
+          else if(mode == MODE_CLOCK_ADJ_SET){  // 時計設定実行モード
+            clock_adj(CL_ADJ_UP);                 // 時計 Plus
+            Serial.println(" CL_ADJ_UP.");
+          }
+          else if(mode == MODE_CAL_ADJ_SET){    // 時計設定実行モード
+            calender_adj(CAL_ADJ_UP);             // カレンダー Plus
+            Serial.println(" CAL_ADJ_UP.");
+          }
+          else if(mode == MODE_BRIGHTNESS_ADJ_SET){ // 輝度操作実行モード
+            brightness_adj(BR_ADJ_BRUP);              // 輝度 Plus
+            Serial.println(" BR_ADJ_BRUP.");
+          }
+           
+          Serial.print(" mode : ");
+          Serial.println(mode);
+          Serial.println("SetMode UP.");
         }
-        else if (mode == MODE_CAL_ADJ) {
-          calender_adj(CAL_ADJ_UP);
-        }
-        else if (mode == MODE_CLOCK_ADJ) {
-          clock_adj(CL_ADJ_UP);
-        }
-        Serial.println("S2");
+
         //        digitalWrite(VFD_BLANKING, HIGH);
         break;
-      case 0x03:
-        //        Serial.println("S3");
-        break;
-      case 0x04:
-        if (mode == MODE_BRIGHTNESS_ADJ) {
-          //          brightness_adj(BR_ADJ_BRDOWN);
-        }
-        else if (mode == MODE_CAL_ADJ) {
-          calender_adj(CAL_ADJ_DOWN);
-        }
-        else if (mode == MODE_CLOCK_ADJ) {
-          clock_adj(CL_ADJ_DOWN);
-        }
-        //        digitalWrite(VFD_BLANKING, LOW);
-        Serial.println("S4");
+      case 0b100:                            // SW3 Short ON
+        Serial.println("SW3 Short On");
+
         break;
       default:
         //        Serial.println("SOther");
@@ -675,14 +731,12 @@ void keyman(void)
       case 0b01:                            // SW1 Long ON
         Serial.println("SW1 Long On");
         if (mode_m == MODE_M_DISP) {          // 通常表示モード
-          // 設定モードへ
           Serial.println("*** To Set. ***");
-          modeset_m(MODE_M_SET);
+          modeset_m(MODE_M_SET);                // 設定モードへ
         }
-        else if (mode_m == MODE_M_SET) {   // 設定モード
-          // 通常表示モードへ
+        else if (mode_m == MODE_M_SET) {      // 設定モード
           Serial.println("*** To Disp ***");
-          modeset_m(MODE_M_DISP);
+          modeset_m(MODE_M_DISP);               // 通常表示モードへ
         }
         break;
     
