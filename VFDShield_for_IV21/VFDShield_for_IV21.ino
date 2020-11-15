@@ -126,7 +126,11 @@ unsigned char brightness_dig[DISP_KETAMAX];   // 表示各桁輝度
 
 
 //unsigned char i,j;
-unsigned char mode;      // 動作モード
+unsigned char mode_m;    // 動作モード
+#define MODE_M_DISP           0     // 通常表示モード
+#define MODE_M_SET            1     // 設定モード
+
+unsigned char mode;      // 設定モード
 #define MODE_CLOCK             0    // 時計表示
 #define MODE_CLOCK_ADJ         1    // 時計調整
 #define MODE_CAL               2    // カレンダー表示
@@ -134,6 +138,12 @@ unsigned char mode;      // 動作モード
 #define MODE_BRIGHTNESS_ADJ    4    // VFD輝度調整
 #define MODE_BRIGHTNESS_SAVE   5    // VFD輝度記録
 #define MODE_FILAMENT_SETUP    6    // VFDフィラメント電圧調整　全消灯
+
+#define MODE_CLOCK_1224SEL      7
+#define MODE_FADETIME_ADJ       8
+#define MODE_CLOCK_ADJ_SET      9
+#define MODE_CAL_ADJ_SET        10
+#define MODE_BRIGHTNESS_ADJ_SET 11
 
 #define MODE_ERR_              100  // エラー番号閾値　100以上はエラーモード定義として使用する。
 #define MODE_ERR_CPU_VOLTAGE   101  // CPU電圧エラー
@@ -303,6 +313,27 @@ void rtc_chk(void) {
   */
   return;
 
+}
+
+void modeset_m(unsigned char setmode)
+{
+  if (setmode == MODE_M_DISP) {                   // 表示モード
+    mode_m = MODE_M_DISP;                           // 表示モードへ
+    modeset(MODE_CLOCK);                            // 時計表示モードへ
+    Serial.println("Mode_M : Display Mode.");
+  }
+  else if (setmode == MODE_M_SET) {               // 設定モード
+    mode_m = MODE_M_SET;                            // 設定モードへ
+    modeset(MODE_CLOCK_ADJ);                        // 時計設定モードへ
+     Serial.println("Mode_M : Set Mode.");
+  }
+  else{                                           // 仕様外の場合は、表示モード・時計表示とする
+    mode_m = MODE_M_DISP;
+    modeset(MODE_CLOCK);
+     Serial.println("Mode_M : Display Mode.(Mode Error)");
+  }
+  
+  return;
 }
 
 void modeset(unsigned char setmode)
