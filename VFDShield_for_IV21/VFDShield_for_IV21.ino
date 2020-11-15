@@ -672,6 +672,96 @@ void keyman(void)
   }
   else if (longonw != 0) {
     switch (longonw) {
+      case 0b01:                            // SW1 Long ON
+        Serial.println("SW1 Long On");
+        if (mode_m == MODE_M_DISP) {          // 通常表示モード
+          // 設定モードへ
+          Serial.println("*** To Set. ***");
+          modeset_m(MODE_M_SET);
+        }
+        else if (mode_m == MODE_M_SET) {   // 設定モード
+          // 通常表示モードへ
+          Serial.println("*** To Disp ***");
+          modeset_m(MODE_M_DISP);
+        }
+        break;
+    
+     default:
+        //        Serial.println("LOther");
+        break;
+    }
+    //    tm.longon_keydataw = 0;    // 処理完了　キー入力情報クリア
+#ifdef KEY_TEST
+    key_now = longonw * 10;
+#endif
+  }
+  else {}
+
+  return;
+}
+/*
+void keyman(void)
+{
+  unsigned int shortonw;
+  unsigned int longonw;
+
+  shortonw = tm.read_s();
+  longonw = tm.read_l();
+
+  if (shortonw != 0) {
+    switch (shortonw) {
+      case 0x01:
+        if (mode == MODE_BRIGHTNESS_ADJ) {
+          brightness_adj(BR_ADJ_DIGUP);
+        }
+        else if (mode == MODE_CAL_ADJ) {
+          calender_adj(CAL_ADJ_DIGUP);
+        }
+        else if (mode == MODE_CLOCK_ADJ) {
+          clock_adj(CL_ADJ_DIGUP);
+        }
+        Serial.println("S1");
+        break;
+      case 0x02:
+        if (mode == MODE_BRIGHTNESS_ADJ) {
+          //          brightness_adj(BR_ADJ_BRUP);
+        }
+        else if (mode == MODE_CAL_ADJ) {
+          calender_adj(CAL_ADJ_UP);
+        }
+        else if (mode == MODE_CLOCK_ADJ) {
+          clock_adj(CL_ADJ_UP);
+        }
+        Serial.println("S2");
+        //        digitalWrite(VFD_BLANKING, HIGH);
+        break;
+      case 0x03:
+        //        Serial.println("S3");
+        break;
+      case 0x04:
+        if (mode == MODE_BRIGHTNESS_ADJ) {
+          //          brightness_adj(BR_ADJ_BRDOWN);
+        }
+        else if (mode == MODE_CAL_ADJ) {
+          calender_adj(CAL_ADJ_DOWN);
+        }
+        else if (mode == MODE_CLOCK_ADJ) {
+          clock_adj(CL_ADJ_DOWN);
+        }
+        //        digitalWrite(VFD_BLANKING, LOW);
+        Serial.println("S4");
+        break;
+      default:
+        //        Serial.println("SOther");
+        break;
+    }
+    //    tm.shorton_keydataw = 0;    // 処理完了　キー入力情報クリア
+#ifdef KEY_TEST
+    key_now = shortonw;
+#endif
+  }
+  else if (longonw != 0) {
+    switch (longonw) {
       case 0x01:
         if (mode == MODE_CLOCK) {
           // 時計設定モードへ
@@ -726,7 +816,7 @@ void keyman(void)
 
   return;
 }
-
+*/
 
 void clock_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp) // 時刻調整時表示データ作成
 {
