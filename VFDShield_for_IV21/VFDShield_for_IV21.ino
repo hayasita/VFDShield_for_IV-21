@@ -428,10 +428,16 @@ void disp_datamake(void) {
   else if (mode == MODE_CLOCK_ADJ) {
     clock_adj_dispdat_make(disp_tmp, piriod_tmp);
   }
+  else if (mode == MODE_CLOCK_ADJ_SET) {
+    clock_adj_dispdat_make(disp_tmp, piriod_tmp);
+  }
   else if (mode == MODE_CAL) {
     calender_display(disp_tmp, piriod_tmp);
   }
   else if (mode == MODE_CAL_ADJ) {
+    calender_adj_dispdat_make(disp_tmp, piriod_tmp);
+  }
+  else if (mode == MODE_CAL_ADJ_SET) {
     calender_adj_dispdat_make(disp_tmp, piriod_tmp);
   }
   else if (mode == MODE_BRIGHTNESS_ADJ) {
@@ -440,6 +446,13 @@ void disp_datamake(void) {
   else if (mode == MODE_FILAMENT_SETUP) {
     disp_alloff(disp_tmp, piriod_tmp);
   }
+  else if (mode == MODE_CLOCK_1224SEL){
+    disp_tmp[8] = DISP_K0;
+  }
+  else if (mode == MODE_FADETIME_ADJ){
+    disp_tmp[8] = DISP_K1;
+  }
+
 #endif
 
   // 表示データ作成
