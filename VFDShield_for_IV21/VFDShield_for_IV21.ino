@@ -343,11 +343,14 @@ void modeset(unsigned char setmode)
     Serial.println("Mode : Clock.");
   }
   else if (setmode == MODE_CLOCK_ADJ) {
+    mode = MODE_CLOCK_ADJ;
+  }
+  else if (setmode == MODE_CLOCK_ADJ_SET) {
     adj_point = ADJ_HOUR;    // 時間調整から開始する
     adj_runf = OFF;          // 調整実行フラグ初期化
     adj_data[ADJ_HOUR - ADJ_HOUR] = date_time[2];
     adj_data[ADJ_MIN - ADJ_HOUR] = date_time[1] = minute();
-    mode = MODE_CLOCK_ADJ;
+    mode = MODE_CLOCK_ADJ_SET;
     Serial.println("Mode : Clock ADJ.");
   }
   else if (setmode == MODE_CAL) {
@@ -355,12 +358,15 @@ void modeset(unsigned char setmode)
     Serial.println("Mode : Calender.");
   }
   else if (setmode == MODE_CAL_ADJ) {
+    mode = MODE_CAL_ADJ;
+  }
+  else if (setmode == MODE_CAL_ADJ_SET) {
     adj_point = ADJ_YEAR;    // 年調整から開始する
     adj_runf = OFF;          // 調整実行フラグ初期化
     adj_data[ADJ_YEAR - ADJ_YEAR] = year()-2000;
     adj_data[ADJ_MONTH - ADJ_YEAR] = date_time[5];
     adj_data[ADJ_DAY - ADJ_YEAR] = date_time[3];
-    mode = MODE_CAL_ADJ;
+    mode = MODE_CAL_ADJ_SET;
     Serial.println("Mode : Calender ADJ.");
   }
   else if (setmode == MODE_BRIGHTNESS_ADJ) {
@@ -375,6 +381,15 @@ void modeset(unsigned char setmode)
   }
   else if (setmode == MODE_FILAMENT_SETUP) {
     mode = MODE_FILAMENT_SETUP;
+  }
+  else if (setmode == MODE_CLOCK_1224SEL){
+    mode = MODE_CLOCK_1224SEL;
+  }
+  else if (setmode == MODE_FADETIME_ADJ){
+    mode = MODE_FADETIME_ADJ;
+  }
+  else{
+  //  mode = setmode;
   }
 
   return;
