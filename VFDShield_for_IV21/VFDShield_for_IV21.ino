@@ -254,6 +254,7 @@ void setup() {
   // mode Setup
   if (mode < MODE_ERR_) { // エラー発生なし
     if (startmode_sw == 0) { // 電源ON時SW1入力あり
+      modeset_m(MODE_M_DISP);           // 通常表示モードへ
       modeset(MODE_FILAMENT_SETUP);    // VFDフィラメント電圧調整
       Serial.println("Mode : Filament Setup.");
       // DCDC OFF
@@ -261,6 +262,7 @@ void setup() {
       Serial.println("DCDC Converter : Stop.");
     }
     else {
+      modeset_m(MODE_M_DISP);           // 通常表示モードへ
       modeset(MODE_CLOCK);
       dcdc_runningf = ON;
       Serial.println("DCDC Converter : Start OK.");
@@ -319,18 +321,15 @@ void modeset_m(unsigned char setmode)
 {
   if (setmode == MODE_M_DISP) {                   // 表示モード
     mode_m = MODE_M_DISP;                           // 表示モードへ
-    modeset(MODE_CLOCK);                            // 時計表示モードへ
     Serial.println("Mode_M : Display Mode.");
   }
   else if (setmode == MODE_M_SET) {               // 設定モード
     mode_m = MODE_M_SET;                            // 設定モードへ
-    modeset(MODE_CLOCK_ADJ);                        // 時計設定モードへ
-     Serial.println("Mode_M : Set Mode.");
+    Serial.println("Mode_M : Set Mode.");
   }
   else{                                           // 仕様外の場合は、表示モード・時計表示とする
     mode_m = MODE_M_DISP;
-    modeset(MODE_CLOCK);
-     Serial.println("Mode_M : Display Mode.(Mode Error)");
+    Serial.println("Mode_M : Display Mode.(Mode Error)");
   }
   
   return;
@@ -377,6 +376,7 @@ void modeset(unsigned char setmode)
   }
   else if (setmode == MODE_BRIGHTNESS_SAVE) {
     brightness_eeprom_save();    // 輝度をEEPROMに保存
+    modeset_m(MODE_M_DISP);       // 通常表示モードへ
     modeset(MODE_CLOCK);         // 動作モードを時計表示にする。
   }
   else if (setmode == MODE_FILAMENT_SETUP) {
@@ -422,35 +422,35 @@ void disp_datamake(void) {
   piriod_tmp[7] = 0x01;
   piriod_tmp[8] = 0x01;
 #else
-  if (mode == MODE_CLOCK) {
-    clock_display(disp_tmp, piriod_tmp);  // 時刻情報作成
+  if (mode == MODE_CLOCK) {                             // 時刻表示
+    clock_display(disp_tmp, piriod_tmp);                  // 時刻情報作成
   }
-  else if (mode == MODE_CLOCK_ADJ) {
+  else if (mode == MODE_CLOCK_ADJ) {                    // 時刻設定
     clock_adj_dispdat_make(disp_tmp, piriod_tmp);
   }
-  else if (mode == MODE_CLOCK_ADJ_SET) {
+  else if (mode == MODE_CLOCK_ADJ_SET) {                // 時刻設定実行
     clock_adj_dispdat_make(disp_tmp, piriod_tmp);
   }
-  else if (mode == MODE_CAL) {
+  else if (mode == MODE_CAL) {                          // カレンダー表示
     calender_display(disp_tmp, piriod_tmp);
   }
-  else if (mode == MODE_CAL_ADJ) {
+  else if (mode == MODE_CAL_ADJ) {                      // カレンダー設定
     calender_adj_dispdat_make(disp_tmp, piriod_tmp);
   }
-  else if (mode == MODE_CAL_ADJ_SET) {
+  else if (mode == MODE_CAL_ADJ_SET) {                  // カレンダー設定実行
     calender_adj_dispdat_make(disp_tmp, piriod_tmp);
   }
-  else if (mode == MODE_BRIGHTNESS_ADJ) {
+  else if (mode == MODE_BRIGHTNESS_ADJ) {               // 輝度設定
     brightness_adj_dispdat_make(disp_tmp, piriod_tmp);
   }
   else if (mode == MODE_FILAMENT_SETUP) {
     disp_alloff(disp_tmp, piriod_tmp);
   }
-  else if (mode == MODE_CLOCK_1224SEL){
-    disp_tmp[8] = DISP_K0;
+  else if (mode == MODE_CLOCK_1224SEL){                 // 12h24h表示切替
+    clock1224set_dispdat_make(disp_tmp, piriod_tmp);
   }
-  else if (mode == MODE_FADETIME_ADJ){
-    disp_tmp[8] = DISP_K1;
+  else if (mode == MODE_FADETIME_ADJ){                  // クロスフェード時間設定
+    crossfade_adj_dispdat_make(disp_tmp, piriod_tmp);
   }
 
 #endif
@@ -536,9 +536,38 @@ void clock_display(unsigned char *disp_tmp, unsigned char *piriod_tmp)
 void disp_alloff(unsigned char *disp_tmp, unsigned char *piriod_tmp) {
   for (unsigned char i = 0; i < 9; i++) {
     disp_tmp[i] = DISP_NON;
-    piriod_tmp[i] = 0;
+    piriod_tmp[i] = 0x00;
   }
 
+  return;
+}
+
+void clock1224set_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp) {
+  for (unsigned char i = 0; i < 9; i++) {
+    disp_tmp[i] = DISP_NON;
+    piriod_tmp[i] = 0x00;
+  }
+
+  disp_tmp[8] = DISP_K0;
+  disp_tmp[7] = DISP_01;
+  disp_tmp[6] = DISP_02;
+  disp_tmp[5] = DISP_02;
+  disp_tmp[4] = DISP_04;
+  piriod_tmp[6] = 0x01;
+
+  disp_tmp[1] = DISP_02;
+  disp_tmp[0] = DISP_04;
+
+  return;
+}
+
+void crossfade_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp) {
+  for (unsigned char i = 0; i < 9; i++) {
+    disp_tmp[i] = DISP_NON;
+    piriod_tmp[i] = 0;
+  }
+  disp_tmp[0] = DISP_07;
+  disp_tmp[8] = DISP_K1;
   return;
 }
 
@@ -761,10 +790,12 @@ void keyman(void)
         if (mode_m == MODE_M_DISP) {          // 通常表示モード
           Serial.println("*** To Set. ***");
           modeset_m(MODE_M_SET);                // 設定モードへ
+          modeset(MODE_CLOCK_ADJ);              // 時計設定モードへ
         }
         else if (mode_m == MODE_M_SET) {      // 設定モード
           Serial.println("*** To Disp ***");
           modeset_m(MODE_M_DISP);               // 通常表示モードへ
+          modeset(MODE_CLOCK);                  // 時計表示モードへ
         }
         break;
     
@@ -947,10 +978,12 @@ void clock_adj(unsigned char keyw)  // 時刻合わせ
         tim.Second = 0;
         RTC.write(tim);
       }
+      modeset_m(MODE_M_DISP); // 通常表示モードへ
       modeset(MODE_CLOCK);    // 時計表示モードにする
     }
     else {
       // 状態遷移異常
+      modeset_m(MODE_M_DISP); // 通常表示モードへ
       modeset(MODE_ERR_STATETRANSITION);    // 時計表示モードにする
     }
   }
@@ -966,6 +999,7 @@ void clock_adj(unsigned char keyw)  // 時刻合わせ
       }
     }
     else {
+      modeset_m(MODE_M_DISP); // 通常表示モードへ
       modeset(MODE_ERR_STATETRANSITION);    // 状態遷移異常
     }
   }
@@ -981,6 +1015,7 @@ void clock_adj(unsigned char keyw)  // 時刻合わせ
       }
     }
     else {
+      modeset_m(MODE_M_DISP); // 通常表示モードへ
       modeset(MODE_ERR_STATETRANSITION);    // 状態遷移異常
     }
   }
@@ -1069,10 +1104,12 @@ void calender_adj(unsigned char keyw)  // カレンダー合わせ
         tim.Year = CalendarYrToTm(2000 + adj_data[ADJ_YEAR - ADJ_YEAR]);
         RTC.write(tim);
       }
+      modeset_m(MODE_M_DISP); // 通常表示モードへ
       modeset(MODE_CAL);    // カレンダー表示モードにする
     }
     else {
       // 状態遷移異常
+      modeset_m(MODE_M_DISP); // 通常表示モードへ
       modeset(MODE_ERR_STATETRANSITION);    // 時計表示モードにする
     }
   }
@@ -1098,6 +1135,7 @@ void calender_adj(unsigned char keyw)  // カレンダー合わせ
       }
     }
     else {
+      modeset_m(MODE_M_DISP); // 通常表示モードへ
       modeset(MODE_ERR_STATETRANSITION);    // 状態遷移異常
     }
   }
@@ -1122,6 +1160,7 @@ void calender_adj(unsigned char keyw)  // カレンダー合わせ
       }
     }
     else {
+      modeset_m(MODE_M_DISP); // 通常表示モードへ
       modeset(MODE_ERR_STATETRANSITION);    // 状態遷移異常
     }
   }
@@ -1518,6 +1557,7 @@ void cpu_voltage_chk(void) {
 
   vcc_tmp = cpu_vcc();
   if ((vcc_tmp < CPU_VCC_MIN) && (vcc_tmp > CPU_VCC_MAX)) { // 正常範囲外
+    modeset_m(MODE_M_DISP);         // 通常表示モードへ
     modeset(MODE_ERR_CPU_VOLTAGE);
   }
   
