@@ -710,21 +710,7 @@ void keyman(void)
           Serial.println(mode);
           Serial.println(" SetMode Target chg.");
         }
-        else if (mode_m == MODE_M_DISP) {   // 表示モード
-          if (mode == MODE_CLOCK){            // 時計表示
-            modeset(MODE_CAL);                  // カレンダー表示モードへ
-          }
-          else if(mode == MODE_CAL){          // カレンダー表示
-            modeset(MODE_CLOCK);                // 時計表示モードへ
-          }
-          else{                               // その他
-            modeset(MODE_CAL);                  // カレンダー表示モードへ
-          }
-
-        }
-
         break;
-
 
       case 0b10:                            // SW2 Short ON
         Serial.println("SW2 Short On");
@@ -767,11 +753,36 @@ void keyman(void)
           Serial.println(mode);
           Serial.println("SetMode UP.");
         }
+        else if (mode_m == MODE_M_DISP) {     // 表示モード
+          if (mode == MODE_CLOCK){              // 時計表示
+            modeset(MODE_CAL);                    // カレンダー表示モードへ
+          }
+          else if(mode == MODE_CAL){            // カレンダー表示
+            modeset(MODE_CLOCK);                  // 時計表示モードへ
+          }
+          else{                                 // その他
+            modeset(MODE_CAL);                    // カレンダー表示モードへ
+          }
+        }
+
 
         //        digitalWrite(VFD_BLANKING, HIGH);
         break;
       case 0b100:                            // SW3 Short ON
         Serial.println("SW3 Short On");
+        else if (mode_m == MODE_M_DISP) {     // 表示モード
+          if (mode == MODE_CLOCK){              // 時計表示
+            modeset(MODE_CAL);                    // カレンダー表示モードへ
+          }
+          else if(mode == MODE_CAL){            // カレンダー表示
+            modeset(MODE_CLOCK);                  // 時計表示モードへ
+          }
+          else{                                 // その他
+            modeset(MODE_CAL);                    // カレンダー表示モードへ
+          }
+        }
+
+
 
         break;
       default:
