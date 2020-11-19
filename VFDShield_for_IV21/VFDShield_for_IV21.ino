@@ -976,6 +976,9 @@ void clock_adj(unsigned char keyw)  // 時刻合わせ
         tim.Hour = adj_data[ADJ_HOUR - ADJ_HOUR];
         tim.Minute = adj_data[ADJ_MIN - ADJ_HOUR];
         tim.Second = 0;
+        tim.Day = day();
+        tim.Month = month();
+        tim.Year = year();
         RTC.write(tim);
       }
       modeset_m(MODE_M_DISP); // 通常表示モードへ
@@ -1099,6 +1102,9 @@ void calender_adj(unsigned char keyw)  // カレンダー合わせ
       // 終了処理
       if (adj_runf == ON) {  // 調整実行された
         //RTCに反映
+        tim.Second = second();   
+        tim.Minute = minute();
+        tim.Hour = hour();
         tim.Day = adj_data[ADJ_DAY - ADJ_YEAR];
         tim.Month = adj_data[ADJ_MONTH - ADJ_YEAR];
         tim.Year = CalendarYrToTm(2000 + adj_data[ADJ_YEAR - ADJ_YEAR]);
