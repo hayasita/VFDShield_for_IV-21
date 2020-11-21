@@ -424,6 +424,7 @@ void disp_datamake(void) {
 #else
   if (mode == MODE_CLOCK) {                             // 時刻表示
     clock_display(disp_tmp, piriod_tmp);                  // 時刻情報作成
+    symbol_display(disp_tmp, piriod_tmp);
   }
   else if (mode == MODE_CLOCK_ADJ) {                    // 時刻設定
     clock_adjtitle_dispdat_make(disp_tmp, piriod_tmp);
@@ -474,6 +475,19 @@ void disp_datamake(void) {
 
   return;
 }
+
+void symbol_display(unsigned char *disp_tmp, unsigned char *piriod_tmp)
+{
+  if (count >= (second_counterw / 2)) {
+    disp_tmp[8] = DISP_NON;     // ○消灯処理
+  }
+  else {
+    disp_tmp[8] = DISP_K0;      // ○点灯処理
+  }
+
+  return;
+}
+
 void clock_display(unsigned char *disp_tmp, unsigned char *piriod_tmp)
 {
 #ifdef DISP_TEST
@@ -515,15 +529,6 @@ void clock_display(unsigned char *disp_tmp, unsigned char *piriod_tmp)
   disp_tmp[5] = date_time[2] % 10;
   disp_tmp[6] = date_time[2] / 10;
   disp_tmp[7] = DISP_K3;
-
-  if (count >= (second_counterw / 2)) {
-    // ピリオド消灯処理
-    disp_tmp[8] = DISP_NON;
-  }
-  else {
-    // ピリオド点灯処理
-    disp_tmp[8] = DISP_K0;
-  }
 
   //  piriod_tmp[0] = piriod_tmp[2] = piriod_tmp[4] = 0x01;
   //  piriod_tmp[1] = piriod_tmp[3] = piriod_tmp[5] = piriod_tmp[6] = piriod_tmp[7] = piriod_tmp[8] = 0x00;
