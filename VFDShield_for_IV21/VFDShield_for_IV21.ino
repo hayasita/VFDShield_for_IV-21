@@ -426,7 +426,7 @@ void disp_datamake(void) {
     clock_display(disp_tmp, piriod_tmp);                  // 時刻情報作成
   }
   else if (mode == MODE_CLOCK_ADJ) {                    // 時刻設定
-    clock_adj_dispdat_make(disp_tmp, piriod_tmp);
+    clock_adjtitle_dispdat_make(disp_tmp, piriod_tmp);
   }
   else if (mode == MODE_CLOCK_ADJ_SET) {                // 時刻設定実行
     clock_adj_dispdat_make(disp_tmp, piriod_tmp);
@@ -435,7 +435,7 @@ void disp_datamake(void) {
     calender_display(disp_tmp, piriod_tmp);
   }
   else if (mode == MODE_CAL_ADJ) {                      // カレンダー設定
-    calender_adj_dispdat_make(disp_tmp, piriod_tmp);
+    calender_adjtitle_dispdat_make(disp_tmp, piriod_tmp);
   }
   else if (mode == MODE_CAL_ADJ_SET) {                  // カレンダー設定実行
     calender_adj_dispdat_make(disp_tmp, piriod_tmp);
@@ -680,29 +680,29 @@ void keyman(void)
 
       case 0b01:                            // SW1 Short ON
         Serial.println("SW1 Short On");
-        if (mode_m == MODE_M_SET) {   // 設定モード
-          if (mode == MODE_CLOCK_ADJ) {           // 時計設定モード
-            modeset(MODE_CLOCK_ADJ_SET);            // 時計設定実行モードへ
+        if (mode_m == MODE_M_SET) {           // 設定モード
+          if (mode == MODE_CLOCK_ADJ) {                 // 時計設定モード
+            modeset(MODE_CLOCK_ADJ_SET);                  // 時計設定実行モードへ
             Serial.println(" MODE_CLOCK_ADJ_SET chg.");
           }
-          else if (mode == MODE_CLOCK_ADJ_SET) {  // 時計設定実行モード
-            clock_adj(CL_ADJ_DIGUP);                // 時計操作桁更新
+          else if (mode == MODE_CLOCK_ADJ_SET) {        // 時計設定実行モード
+            clock_adj(CL_ADJ_DIGUP);                      // 時計操作桁更新
             Serial.println(" CLOCK ADJ DigUp.");
           }
-          else if (mode == MODE_CAL_ADJ) {        // カレンダー設定モード
-            modeset(MODE_CAL_ADJ_SET);              // カレンダー実行モードへ
+          else if (mode == MODE_CAL_ADJ) {              // カレンダー設定モード
+            modeset(MODE_CAL_ADJ_SET);                    // カレンダー設定実行モードへ
             Serial.println(" MODE_CAL_ADJ_SET chg.");
            }
-          else if (mode == MODE_CAL_ADJ_SET) {    // カレンダー実行モード
-            clock_adj(CAL_ADJ_DIGUP);               // カレンダー操作桁更新
+          else if (mode == MODE_CAL_ADJ_SET) {          // カレンダー実行モード
+            calender_adj(CAL_ADJ_DIGUP);                  // カレンダー操作桁更新
             Serial.println(" CAL ADJ DigUp.");
           }
-          else if (mode == MODE_BRIGHTNESS_ADJ) { // 輝度設定モード
-            modeset(MODE_BRIGHTNESS_ADJ_SET);       // 輝度設定実行モードへ
+          else if (mode == MODE_BRIGHTNESS_ADJ) {       // 輝度設定モード
+            modeset(MODE_BRIGHTNESS_ADJ_SET);             // 輝度設定実行モードへ
             Serial.println(" MODE_BRIGHTNESS_ADJ_SET chg.");
           }
-          else if (mode == MODE_BRIGHTNESS_ADJ_SET) {  // 輝度操作実行モード
-            brightness_adj(BR_ADJ_DIGUP);           // 輝度操作桁更新
+          else if (mode == MODE_BRIGHTNESS_ADJ_SET) {   // 輝度操作実行モード
+            brightness_adj(BR_ADJ_DIGUP);                 // 輝度操作桁更新
             Serial.println(" BRIGHTNESS ADJ DigUp.");
           }
 
@@ -735,12 +735,12 @@ void keyman(void)
             modeset(MODE_CLOCK_ADJ);              // 時計設定モードへ
             Serial.println(" MODE_CLOCK_ADJ.");
           }
-
+                                              // 設定値変更
           else if(mode == MODE_CLOCK_ADJ_SET){  // 時計設定実行モード
             clock_adj(CL_ADJ_UP);                 // 時計 Plus
             Serial.println(" CL_ADJ_UP.");
           }
-          else if(mode == MODE_CAL_ADJ_SET){    // 時計設定実行モード
+          else if(mode == MODE_CAL_ADJ_SET){    // カレンダー設定実行モード
             calender_adj(CAL_ADJ_UP);             // カレンダー Plus
             Serial.println(" CAL_ADJ_UP.");
           }
@@ -770,6 +770,46 @@ void keyman(void)
         break;
       case 0b100:                            // SW3 Short ON
         Serial.println("SW3 Short On");
+        if (mode_m == MODE_M_SET) {           // 設定モード
+          if (mode == MODE_CLOCK_ADJ) {         // 時計設定モード
+            modeset(MODE_BRIGHTNESS_ADJ);         // 輝度設定モードへ
+            Serial.println(" MODE_BRIGHTNESS_ADJ.");
+          }
+          else if(mode == MODE_CAL_ADJ){        // カレンダー設定モード
+            modeset(MODE_CLOCK_ADJ);              // 時計設定モードへ
+            Serial.println(" MODE_CLOCK_ADJ.");
+          }
+          else if(mode == MODE_CLOCK_1224SEL){  // 時計表示 12h<>24h設定モード
+            modeset(MODE_CAL_ADJ);                // カレンダー設定モードへ
+            Serial.println(" MODE_CAL_ADJ.");
+          }
+          else if(mode == MODE_FADETIME_ADJ){   // クロスフェード時間設定モード
+            modeset(MODE_CLOCK_1224SEL);          // 時計表示 12h<>24h設定モードへ
+            Serial.println(" MODE_CLOCK_1224SEL.");
+          }
+          else if(mode == MODE_BRIGHTNESS_ADJ){ // 輝度設定モード
+            modeset(MODE_FADETIME_ADJ);           // クロスフェード時間設定モードへ
+            Serial.println(" MODE_FADETIME_ADJ.");
+          }
+
+                                              // 設定値変更
+          else if(mode == MODE_CLOCK_ADJ_SET){  // 時計設定実行モード
+            clock_adj(CL_ADJ_DOWN);                 // 時計 Minus
+            Serial.println(" CL_ADJ_DOWN.");
+          }
+          else if(mode == MODE_CAL_ADJ_SET){    // カレンダー設定実行モード
+            calender_adj(CAL_ADJ_DOWN);             // カレンダー Minus
+            Serial.println(" CAL_ADJ_DOWN.");
+          }
+          else if(mode == MODE_BRIGHTNESS_ADJ_SET){ // 輝度操作実行モード
+            brightness_adj(BR_ADJ_BRDOWN);              // 輝度 Minus
+            Serial.println(" BR_ADJ_BRDOWN.");
+          }
+           
+          Serial.print(" mode : ");
+          Serial.println(mode);
+          Serial.println("SetMode DOWNDOWN.");
+        }
         else if (mode_m == MODE_M_DISP) {     // 表示モード
           if (mode == MODE_CLOCK){              // 時計表示
             modeset(MODE_CAL);                    // カレンダー表示モードへ
@@ -941,6 +981,31 @@ void keyman(void)
   return;
 }
 */
+void clock_adjtitle_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp){
+  disp_tmp[0] = DISP_NON;
+  disp_tmp[1] = date_time[0] % 10;
+  disp_tmp[2] = date_time[0] / 10;
+  disp_tmp[3] = date_time[1] % 10;
+  disp_tmp[4] = date_time[1] / 10;
+  disp_tmp[5] = date_time[2] % 10;
+  disp_tmp[6] = date_time[2] / 10;
+  disp_tmp[7] = DISP_NON;
+  disp_tmp[8] = DISP_NON;
+
+
+  // 調整桁点滅処理
+  if (count >= (second_counterw / 2)) {
+      disp_tmp[5] = disp_tmp[6] = DISP_NON;
+      disp_tmp[3] = disp_tmp[4] = DISP_NON;
+      disp_tmp[1] = disp_tmp[2] = DISP_NON;
+ }
+
+  piriod_tmp[1] = piriod_tmp[3] = piriod_tmp[5] = 0x01;
+  piriod_tmp[0] = piriod_tmp[2] = piriod_tmp[4] = piriod_tmp[6] = piriod_tmp[7] = piriod_tmp[8] = 0x00;
+
+  return;
+ 
+}
 
 void clock_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp) // 時刻調整時表示データ作成
 {
@@ -1062,6 +1127,38 @@ void calender_display(unsigned char *disp_tmp, unsigned char *piriod_tmp)
 
   return;
 }
+
+void calender_adjtitle_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp)
+{
+  disp_tmp[0] = date_time[3] % 10;
+  disp_tmp[1] = date_time[3] / 10;
+  disp_tmp[2] = DISP_K1;
+  disp_tmp[3] = date_time[5] % 10;
+  disp_tmp[4] = date_time[5] / 10;
+  disp_tmp[5] = DISP_K1;
+  disp_tmp[6] = date_time[6] % 10;
+  disp_tmp[7] = date_time[6] / 10;
+
+  if (count >= (second_counterw / 2)) {
+    // ピリオド消灯処理
+    disp_tmp[0] = disp_tmp[1] = DISP_NON;
+    disp_tmp[2] = disp_tmp[3] = DISP_NON;
+    disp_tmp[4] = disp_tmp[5] = DISP_NON;
+    disp_tmp[6] = disp_tmp[7] = DISP_NON;
+    disp_tmp[8] = DISP_NON;
+  }
+  else {
+    // ピリオド点灯処理
+    disp_tmp[8] = DISP_K0;
+  }
+
+  piriod_tmp[1] = piriod_tmp[3] = piriod_tmp[5] = 0x00;
+  piriod_tmp[0] = piriod_tmp[2] = piriod_tmp[4] = piriod_tmp[6] = piriod_tmp[7] = piriod_tmp[8] = 0x00;
+
+  return;
+
+}
+
 void calender_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp) // 時刻調整時表示データ作成
 {
   // 調整用表示データ作成
