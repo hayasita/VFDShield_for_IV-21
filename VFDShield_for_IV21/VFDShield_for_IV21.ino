@@ -65,14 +65,14 @@ unsigned long keta_dat[] = {
   0x002000,    // 8
   0x000800     // 9
 };
-#define DISP_A  0x000001
-#define DISP_B  0x000002
-#define DISP_C  0x000010
-#define DISP_D  0x000080
-#define DISP_E  0x000200
-#define DISP_F  0x000400
-#define DISP_G  0x001000
-#define DISP_H  0x000020
+#define ELE_A  0x000001
+#define ELE_B  0x000002
+#define ELE_C  0x000010
+#define ELE_D  0x000080
+#define ELE_E  0x000200
+#define ELE_F  0x000400
+#define ELE_G  0x001000
+#define ELE_H  0x000020
 
 #define DISP_00  0
 #define DISP_01  1
@@ -89,22 +89,74 @@ unsigned long keta_dat[] = {
 #define DISP_K2  12
 #define DISP_K3  13
 #define DISP_NON  13
+#define DISP_A    14
+#define DISP_B    15
+#define DISP_C    16
+#define DISP_D    17
+#define DISP_E    18
+#define DISP_F    19
+#define DISP_G    20
+#define DISP_H    21
+#define DISP_I    22
+#define DISP_J    23
+#define DISP_K    24
+#define DISP_L    25
+#define DISP_M    26
+#define DISP_N    27
+#define DISP_O    28
+#define DISP_P    29
+#define DISP_Q    30
+#define DISP_R    31
+#define DISP_S    32
+#define DISP_T    33
+#define DISP_U    34
+#define DISP_V    35
+#define DISP_W    36
+#define DISP_X    37
+#define DISP_Y    38
+#define DISP_Z    39
 
 unsigned long font[] = {
-  DISP_A | DISP_B | DISP_C | DISP_D | DISP_E | DISP_F,          // 0
-  DISP_B | DISP_C,                                              // 1
-  DISP_A | DISP_B | DISP_G | DISP_E | DISP_D,                   // 2
-  DISP_A | DISP_B | DISP_C | DISP_D | DISP_G,                   // 3
-  DISP_B | DISP_C | DISP_F | DISP_G,                            // 4
-  DISP_A | DISP_F | DISP_G | DISP_C | DISP_D,                   // 5
-  DISP_A | DISP_C | DISP_D | DISP_E | DISP_F | DISP_G,          // 6
-  DISP_A | DISP_B | DISP_C | DISP_F,                            // 7
-  DISP_A | DISP_B | DISP_C | DISP_D | DISP_E | DISP_F | DISP_G, // 8
-  DISP_A | DISP_B | DISP_C | DISP_D | DISP_F | DISP_G,          // 9
-  DISP_F,                                                       // ●
-  DISP_G,                                                       // －
-  DISP_F | DISP_G,                                              // ●－
-  0x000000                                                     // NULL
+  ELE_A | ELE_B | ELE_C | ELE_D | ELE_E | ELE_F,            // 0
+  ELE_B | ELE_C,                                            // 1
+  ELE_A | ELE_B | ELE_G | ELE_E | ELE_D,                    // 2
+  ELE_A | ELE_B | ELE_C | ELE_D | ELE_G,                    // 3
+  ELE_B | ELE_C | ELE_F | ELE_G,                            // 4
+  ELE_A | ELE_F | ELE_G | ELE_C | ELE_D,                    // 5
+  ELE_A | ELE_C | ELE_D | ELE_E | ELE_F | ELE_G,            // 6
+  ELE_A | ELE_B | ELE_C | ELE_F,                            // 7
+  ELE_A | ELE_B | ELE_C | ELE_D | ELE_E | ELE_F | ELE_G,    // 8
+  ELE_A | ELE_B | ELE_C | ELE_D | ELE_F | ELE_G,            // 9
+  ELE_F,                                                    // ●
+  ELE_G,                                                    // －
+  ELE_F | ELE_G,                                            // ●－
+  0x000000,                                                 // NULL
+  ELE_A | ELE_B | ELE_C | ELE_E | ELE_F | ELE_G,            // A
+  ELE_C | ELE_D | ELE_E | ELE_F | ELE_G,                    // B
+  ELE_D | ELE_E | ELE_G,                                    // C
+  ELE_B | ELE_C | ELE_D | ELE_E | ELE_G,                    // D
+  ELE_A | ELE_D | ELE_E | ELE_F | ELE_G,                    // E
+  ELE_A | ELE_E | ELE_F | ELE_G,                            // F
+  ELE_A | ELE_C | ELE_D | ELE_E | ELE_F,                    // G
+  ELE_C | ELE_E | ELE_F | ELE_G,                            // H
+  ELE_E,                                                    // I
+  ELE_B | ELE_C | ELE_D | ELE_E,                            // J
+  ELE_D | ELE_E | ELE_F | ELE_G,                            // K
+  ELE_D | ELE_E | ELE_F,                                    // L
+  ELE_A | ELE_B | ELE_C | ELE_E | ELE_F,                    // M
+  ELE_C | ELE_E | ELE_G,                                    // N
+  ELE_C | ELE_D | ELE_E | ELE_G,                            // O
+  ELE_A | ELE_B | ELE_E | ELE_F | ELE_G,                    // P
+  ELE_A | ELE_B | ELE_C | ELE_F | ELE_G,                    // Q
+  ELE_E | ELE_G,                                            // R
+  ELE_C | ELE_D | ELE_F | ELE_G,                            // S
+  ELE_A | ELE_E | ELE_F,                                    // T
+  ELE_C | ELE_D | ELE_E,                                    // U
+  ELE_B | ELE_C | ELE_D | ELE_E | ELE_F,                    // V
+  ELE_A | ELE_D | ELE_G,                                    // W
+  ELE_B | ELE_C | ELE_E | ELE_F | ELE_G,                    // X
+  ELE_B | ELE_C | ELE_D | ELE_F | ELE_G,                    // Y
+  ELE_A | ELE_B | ELE_D | ELE_E,                            // Z
 };
 #define FONT_MAX (sizeof(font) / sizeof(unsigned long))
 
@@ -461,7 +513,7 @@ void disp_datamake(void) {
     if (disp_tmp[i] <= FONT_MAX) {
       dispdata = font[disp_tmp[i]] | keta_dat[i];
       if (piriod_tmp[i] != 0x00) {
-        dispdata |= DISP_H;
+        dispdata |= ELE_H;
       }
     }
     dispdata_tmp[i] = dispdata;
