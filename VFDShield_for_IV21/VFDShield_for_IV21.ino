@@ -435,6 +435,7 @@ void modeset(unsigned char setmode)
     mode = MODE_FILAMENT_SETUP;
   }
   else if (setmode == MODE_CLOCK_1224SEL){
+    display_scrolldat_meka_ini();
     mode = MODE_CLOCK_1224SEL;
   }
   else if (setmode == MODE_FADETIME_ADJ){
@@ -600,11 +601,13 @@ void disp_alloff(unsigned char *disp_tmp, unsigned char *piriod_tmp) {
 }
 
 void clock1224set_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp) {
+/*
   for (unsigned char i = 0; i < 9; i++) {
     disp_tmp[i] = DISP_NON;
     piriod_tmp[i] = 0x00;
   }
-
+*/
+/*
   disp_tmp[8] = DISP_K0;
   disp_tmp[7] = DISP_01;
   disp_tmp[6] = DISP_02;
@@ -612,9 +615,46 @@ void clock1224set_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tm
   disp_tmp[4] = DISP_04;
   piriod_tmp[6] = 0x01;
 
-  disp_tmp[1] = DISP_02;
-  disp_tmp[0] = DISP_04;
+  disp_tmp[2] = DISP_02;
+  disp_tmp[1] = DISP_04;
+  disp_tmp[0] = DISP_H;
+*/
+/*
+  disp_tmp[7] = DISP_A;
+  disp_tmp[6] = DISP_B;
+  disp_tmp[5] = DISP_C;
+  disp_tmp[4] = DISP_D;
+  disp_tmp[3] = DISP_E;
+  disp_tmp[2] = DISP_F;
+  disp_tmp[1] = DISP_G;
+  disp_tmp[0] = DISP_H;
+*/
+/*
+  disp_tmp[7] = DISP_I;
+  disp_tmp[6] = DISP_J;
+  disp_tmp[5] = DISP_K;
+  disp_tmp[4] = DISP_L;
+  disp_tmp[3] = DISP_M;
+  disp_tmp[2] = DISP_N;
+  disp_tmp[1] = DISP_O;
+  disp_tmp[0] = DISP_P;
+*/
+/*
+  disp_tmp[7] = DISP_Q;
+  disp_tmp[6] = DISP_R;
+  disp_tmp[5] = DISP_S;
+  disp_tmp[4] = DISP_T;
+  disp_tmp[3] = DISP_U;
+  disp_tmp[2] = DISP_V;
+  disp_tmp[1] = DISP_W;
+  disp_tmp[0] = DISP_X;
 
+  disp_tmp[7] = DISP_Y;
+  disp_tmp[6] = DISP_Z;
+*/
+//  char disptxt[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  char disptxt[] = "CLOCK SET";
+  display_scrolldat_meka(disp_tmp,piriod_tmp,disptxt);
   return;
 }
 
