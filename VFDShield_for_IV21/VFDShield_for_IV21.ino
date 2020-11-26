@@ -628,6 +628,72 @@ void crossfade_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_t
   return;
 }
 
+/* 表示スクロールデータ作成 */
+long scroll_tim_nowl;
+unsigned char disp_point;
+void display_scrolldat_meka_ini(){
+
+  Serial.println("display_scrolldat_meka_ini()");
+
+  disp_point = 0;
+  scroll_tim_nowl = millis();
+  Serial.println(scroll_tim_nowl);
+  return;
+}
+
+void display_scrolldat_meka(unsigned char *disp_tmp, unsigned char *piriod_tmp,unsigned char *disp_data) {
+  unsigned char tmp;
+  unsigned char disp_tmpp;
+  long scrool_wait;
+
+  unsigned char startp;       // 表示開始位置
+  unsigned chat dispnum;      // 表示文字数
+
+  if(disp_point == 0){
+    scrool_wait = 0;
+  }
+  else if(disp_point == 1){
+    scrool_wait = 2000;
+  }
+  else{
+    scrool_wait = 500;
+  }
+
+  if( ( millis() - scroll_tim_nowl ) > scrool_wait){
+    Serial.print(strlen(disp_data));
+    Serial.print(" : ");
+    Serial.print(disp_point);
+
+    for(unsigned char i=0 ; i<8 ; i++){
+      disp_tmpp = 7-i;
+
+      if((disp_point + i) < strlen(disp_data)){
+        if( (disp_data[disp_point+i] >= 'A') && (disp_data[disp_point+i] <= 'Z')){
+          tmp = disp_data[disp_point+i] - 'A' + DISP_A;
+        }
+        else if(disp_data[disp_point+i] == ' '){
+          tmp = disp_data[disp_point+i] - ' ' + DISP_NON;
+        }
+        disp_tmp[disp_tmpp] = tmp;
+
+        Serial.print(" : ");
+        Serial.print(tmp);
+      }
+      else{
+        disp_tmp[disp_tmpp] = DISP_NON;
+      }
+    }
+    Serial.println(".");
+    disp_point++;
+    if(disp_point > strlen(disp_data) ){
+      disp_point = 0;
+    }
+    scroll_tim_nowl = millis();
+  }
+
+  return;
+}
+
 void brightness_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp) {
   for (unsigned char i = 0; i < 9; i++) {
     disp_tmp[i] = DISP_08;
