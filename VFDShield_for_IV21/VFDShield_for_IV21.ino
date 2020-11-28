@@ -1163,29 +1163,15 @@ void keyman(void)
 }
 */
 void clock_adjtitle_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp){
-  disp_tmp[0] = DISP_NON;
-  disp_tmp[1] = date_time[0] % 10;
-  disp_tmp[2] = date_time[0] / 10;
-  disp_tmp[3] = date_time[1] % 10;
-  disp_tmp[4] = date_time[1] / 10;
-  disp_tmp[5] = date_time[2] % 10;
-  disp_tmp[6] = date_time[2] / 10;
-  disp_tmp[7] = DISP_NON;
-  disp_tmp[8] = DISP_NON;
 
-
-  // 調整桁点滅処理
-  if (count >= (second_counterw / 2)) {
-      disp_tmp[5] = disp_tmp[6] = DISP_NON;
-      disp_tmp[3] = disp_tmp[4] = DISP_NON;
-      disp_tmp[1] = disp_tmp[2] = DISP_NON;
- }
-
-  piriod_tmp[1] = piriod_tmp[3] = piriod_tmp[5] = 0x01;
-  piriod_tmp[0] = piriod_tmp[2] = piriod_tmp[4] = piriod_tmp[6] = piriod_tmp[7] = piriod_tmp[8] = 0x00;
+  char disptxt[] = "CLOCK SET";
+  display_scrolldat_make(disp_tmp,piriod_tmp,disptxt,5,5);
+  disp_tmp[6] = DISP_NON;
+  disp_tmp[7] = DISP_01;
+  disp_tmp[8] = DISP_K1;
+  piriod_tmp[7] = 0x01;
 
   return;
- 
 }
 
 void clock_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp) // 時刻調整時表示データ作成
@@ -1311,33 +1297,14 @@ void calender_display(unsigned char *disp_tmp, unsigned char *piriod_tmp)
 
 void calender_adjtitle_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp)
 {
-  disp_tmp[0] = date_time[3] % 10;
-  disp_tmp[1] = date_time[3] / 10;
-  disp_tmp[2] = DISP_K1;
-  disp_tmp[3] = date_time[5] % 10;
-  disp_tmp[4] = date_time[5] / 10;
-  disp_tmp[5] = DISP_K1;
-  disp_tmp[6] = date_time[6] % 10;
-  disp_tmp[7] = date_time[6] / 10;
-
-  if (count >= (second_counterw / 2)) {
-    // ピリオド消灯処理
-    disp_tmp[0] = disp_tmp[1] = DISP_NON;
-    disp_tmp[2] = disp_tmp[3] = DISP_NON;
-    disp_tmp[4] = disp_tmp[5] = DISP_NON;
-    disp_tmp[6] = disp_tmp[7] = DISP_NON;
-    disp_tmp[8] = DISP_NON;
-  }
-  else {
-    // ピリオド点灯処理
-    disp_tmp[8] = DISP_K0;
-  }
-
-  piriod_tmp[1] = piriod_tmp[3] = piriod_tmp[5] = 0x00;
-  piriod_tmp[0] = piriod_tmp[2] = piriod_tmp[4] = piriod_tmp[6] = piriod_tmp[7] = piriod_tmp[8] = 0x00;
+  char disptxt[] = "CALENDAR SET";
+  display_scrolldat_make(disp_tmp,piriod_tmp,disptxt,5,5);
+  disp_tmp[6] = DISP_NON;
+  disp_tmp[7] = DISP_02;
+  disp_tmp[8] = DISP_K1;
+  piriod_tmp[7] = 0x01;
 
   return;
-
 }
 
 void calender_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp) // 時刻調整時表示データ作成
