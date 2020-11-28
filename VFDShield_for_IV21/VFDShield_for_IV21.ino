@@ -139,7 +139,7 @@ unsigned long font[] = {
   ELE_A | ELE_E | ELE_F | ELE_G,                            // F
   ELE_A | ELE_C | ELE_D | ELE_E | ELE_F,                    // G
   ELE_C | ELE_E | ELE_F | ELE_G,                            // H
-  ELE_E,                                                    // I
+  ELE_E | ELE_F,                                            // I
   ELE_B | ELE_C | ELE_D | ELE_E,                            // J
   ELE_D | ELE_E | ELE_F | ELE_G,                            // K
   ELE_D | ELE_E | ELE_F,                                    // L
