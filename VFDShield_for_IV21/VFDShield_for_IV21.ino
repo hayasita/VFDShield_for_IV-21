@@ -389,6 +389,8 @@ void modeset_m(unsigned char setmode)
 
 void modeset(unsigned char setmode)
 {
+  unsigned char lastmode;      // 前回設定モード
+
   if (setmode == MODE_CLOCK) {
     mode = MODE_CLOCK;
     Serial.println("Mode : Clock.");
@@ -435,7 +437,6 @@ void modeset(unsigned char setmode)
     mode = MODE_FILAMENT_SETUP;
   }
   else if (setmode == MODE_CLOCK_1224SEL){
-    display_scrolldat_meka_ini();
     mode = MODE_CLOCK_1224SEL;
   }
   else if (setmode == MODE_FADETIME_ADJ){
@@ -443,6 +444,11 @@ void modeset(unsigned char setmode)
   }
   else{
   //  mode = setmode;
+  }
+
+  if(mode != lastmode){             // モード変更あり
+    lastmode = mode;                // 前回モード = 今回モード
+    display_scrolldat_make_ini();   // スクロール表示データ初期化
   }
 
   return;
