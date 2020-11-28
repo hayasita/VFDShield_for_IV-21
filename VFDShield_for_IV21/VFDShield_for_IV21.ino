@@ -677,9 +677,9 @@ void crossfade_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_t
 /* 表示スクロールデータ作成 */
 long scroll_tim_nowl;
 unsigned char disp_point;
-void display_scrolldat_meka_ini(){
+void display_scrolldat_make_ini(){
 
-  Serial.println("display_scrolldat_meka_ini()");
+  Serial.println("display_scrolldat_mak_ini()");
 
   disp_point = 0;
   scroll_tim_nowl = millis();
@@ -687,13 +687,17 @@ void display_scrolldat_meka_ini(){
   return;
 }
 
-void display_scrolldat_meka(unsigned char *disp_tmp, unsigned char *piriod_tmp,unsigned char *disp_data) {
+void display_scrolldat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp,unsigned char *disp_data,unsigned char startp,unsigned char dispnum) {
   unsigned char tmp;
   unsigned char disp_tmpp;
   long scrool_wait;
 
-  unsigned char startp;       // 表示開始位置
-  unsigned chat dispnum;      // 表示文字数
+  if(startp > 7){
+    startp = 7;
+  }
+  if(dispnum > startp){
+    dispnum = startp;
+  }
 
   if(disp_point == 0){
     scrool_wait = 0;
@@ -702,7 +706,7 @@ void display_scrolldat_meka(unsigned char *disp_tmp, unsigned char *piriod_tmp,u
     scrool_wait = 2000;
   }
   else{
-    scrool_wait = 500;
+    scrool_wait = 700;
   }
 
   if( ( millis() - scroll_tim_nowl ) > scrool_wait){
@@ -710,15 +714,22 @@ void display_scrolldat_meka(unsigned char *disp_tmp, unsigned char *piriod_tmp,u
     Serial.print(" : ");
     Serial.print(disp_point);
 
-    for(unsigned char i=0 ; i<8 ; i++){
-      disp_tmpp = 7-i;
+//    for(unsigned char i=0 ; i<8 ; i++){
+    for(unsigned char i=0 ; i<=dispnum ; i++){
+      disp_tmpp = startp-i;
 
       if((disp_point + i) < strlen(disp_data)){
-        if( (disp_data[disp_point+i] >= 'A') && (disp_data[disp_point+i] <= 'Z')){
+        if( (disp_data[disp_point+i] >= '0') && (disp_data[disp_point+i] <= '9')){
+          tmp = disp_data[disp_point+i] - '0' + DISP_00;
+        }
+        else if( (disp_data[disp_point+i] >= 'A') && (disp_data[disp_point+i] <= 'Z')){
           tmp = disp_data[disp_point+i] - 'A' + DISP_A;
         }
         else if(disp_data[disp_point+i] == ' '){
           tmp = disp_data[disp_point+i] - ' ' + DISP_NON;
+        }
+        else{
+          tmp = DISP_NON;
         }
         disp_tmp[disp_tmpp] = tmp;
 
@@ -728,6 +739,7 @@ void display_scrolldat_meka(unsigned char *disp_tmp, unsigned char *piriod_tmp,u
       else{
         disp_tmp[disp_tmpp] = DISP_NON;
       }
+      piriod_tmp[disp_tmpp] = 0x00;
     }
     Serial.println(".");
     disp_point++;
