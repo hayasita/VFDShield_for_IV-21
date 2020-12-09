@@ -183,24 +183,28 @@ unsigned char mode_m;    // 動作モード
 #define MODE_M_SET            1     // 設定モード
 
 unsigned char mode;      // 設定モード
-#define MODE_CLOCK             0    // 時計表示
-#define MODE_CLOCK_ADJ         1    // 時計調整
-#define MODE_CAL               2    // カレンダー表示
-#define MODE_CAL_ADJ           3    // カレンダー調整
-#define MODE_BRIGHTNESS_ADJ    4    // VFD輝度調整
-#define MODE_BRIGHTNESS_SAVE   5    // VFD輝度記録
-#define MODE_FILAMENT_SETUP    6    // VFDフィラメント電圧調整　全消灯
+#define MODE_CLOCK                      0     // 時計表示
+#define MODE_CAL                        1     // カレンダー表示
 
-#define MODE_CLOCK_1224SEL      7
-#define MODE_FADETIME_ADJ       8
-#define MODE_CLOCK_ADJ_SET      9
-#define MODE_CAL_ADJ_SET        10
-#define MODE_BRIGHTNESS_ADJ_SET 11
+#define MODE_CLOCK_ADJ                  10    // 時計調整
+#define MODE_CLOCK_ADJ_SET              11    // 時計調整実行
+#define MODE_CAL_ADJ                    12    // カレンダー調整
+#define MODE_CAL_ADJ_SET                13    // カレンダー調整実行
+#define MODE_CLOCK_1224SEL              14    // 12h24h表示切替
+#define MODE_CLOCK_1224SEL_SET          15    // 12h24h表示切替実行
+#define MODE_FADETIME_ADJ               16    // クロスフェード時間設定
+#define MODE_FADETIME_ADJ_SET           17    // クロスフェード時間設定実行
+#define MODE_DISPTYPE_SEL               18    // 
+#define MODE_DISPTYPE_SEL_SET           19    // 
+#define MODE_BRIGHTNESS_ADJ             20    // VFD輝度調整
+#define MODE_BRIGHTNESS_ADJ_SET         21    // VFD輝度調整実行
+#define MODE_BRIGHTNESS_SAVE            22    // VFD輝度記録
+#define MODE_FILAMENT_SETUP             23    // VFDフィラメント電圧調整　全消灯
 
-#define MODE_ERR_              100  // エラー番号閾値　100以上はエラーモード定義として使用する。
-#define MODE_ERR_CPU_VOLTAGE   101  // CPU電圧エラー
-#define MODE_ERR_DCDC_STOP_VOLTAGE      102  // DCDC停止時電圧エラー
-#define MODE_ERR_DCDC_STARTUP_VOLTAGE   101  // DCDC始動時電圧エラー
+#define MODE_ERR_                       100   // エラー番号閾値　100以上はエラーモード定義として使用する。
+#define MODE_ERR_CPU_VOLTAGE            101   // CPU電圧エラー
+#define MODE_ERR_DCDC_STOP_VOLTAGE      102   // DCDC停止時電圧エラー
+#define MODE_ERR_DCDC_STARTUP_VOLTAGE   101   // DCDC始動時電圧エラー
 #define MODE_ERR_STATETRANSITION  MODE_CLOCK  // 状態遷移エラー
 #define MODE_DEFAULT  MODE_CLOCK              // デフォルト設定
 
@@ -248,7 +252,7 @@ void disp_vfd_iv21(void);
 void keyman(void);
 
 void rtc_chk(void);                            // RTC読み出し
-void clockdisplay(unsigned char *disp_tmp, unsigned char *piriod_tmp);   // 時刻表示データ作成
+//void clockdisplay(unsigned char *disp_tmp, unsigned char *piriod_tmp);   // 時刻表示データ作成
 
 // LED表示設定
 #define LED_PIN         4           // LED port
@@ -422,7 +426,7 @@ void modeset(unsigned char setmode)
     mode = MODE_CAL_ADJ_SET;
     Serial.println("Mode : Calender ADJ.");
   }
-  else if (setmode == MODE_BRIGHTNESS_ADJ) {
+  else if (setmode == MODE_BRIGHTNESS_ADJ) {      // VFD輝度調整
     adj_point = ADJ_BR1;     // 1桁目から開始する
     adj_runf = OFF;          // 調整実行フラグ初期化
     mode = MODE_BRIGHTNESS_ADJ;
@@ -500,7 +504,7 @@ void disp_datamake(void) {
   else if (mode == MODE_CAL_ADJ_SET) {                  // カレンダー設定実行
     calender_adj_dispdat_make(disp_tmp, piriod_tmp);
   }
-  else if (mode == MODE_BRIGHTNESS_ADJ) {               // 輝度設定
+  else if (mode == MODE_BRIGHTNESS_ADJ) {               // VFD輝度調整
     brightness_adj_dispdat_make(disp_tmp, piriod_tmp);
   }
   else if (mode == MODE_FILAMENT_SETUP) {
@@ -878,12 +882,15 @@ void keyman(void)
             calender_adj(CAL_ADJ_DIGUP);                  // カレンダー操作桁更新
             Serial.println(" CAL ADJ DigUp.");
           }
-          else if (mode == MODE_BRIGHTNESS_ADJ) {       // 輝度設定モード
-            modeset(MODE_BRIGHTNESS_ADJ_SET);             // 輝度設定実行モードへ
+          else if(mode == MODE_CLOCK_1224SEL){          // 時計表示 12h<>24h設定モード
+            modeset(MODE_CLOCK_1224SEL_SET);              // 時計表示 12h<>24h設定実行モードへ
+          }
+          else if (mode == MODE_BRIGHTNESS_ADJ) {       // VFD輝度調整モード
+            modeset(MODE_BRIGHTNESS_ADJ_SET);             // VFD輝度調整実行モードへ
             Serial.println(" MODE_BRIGHTNESS_ADJ_SET chg.");
           }
-          else if (mode == MODE_BRIGHTNESS_ADJ_SET) {   // 輝度操作実行モード
-            brightness_adj(BR_ADJ_DIGUP);                 // 輝度操作桁更新
+          else if (mode == MODE_BRIGHTNESS_ADJ_SET) {   // VFD輝度調整実行モード
+            brightness_adj(BR_ADJ_DIGUP);                 // VFD輝度調整桁更新
             Serial.println(" BRIGHTNESS ADJ DigUp.");
           }
 
@@ -909,10 +916,10 @@ void keyman(void)
             Serial.println(" MODE_FADETIME_ADJ.");
           }
           else if(mode == MODE_FADETIME_ADJ){   // クロスフェード時間設定モード
-            modeset(MODE_BRIGHTNESS_ADJ);         // 輝度設定モードへ
+            modeset(MODE_BRIGHTNESS_ADJ);         // VFD輝度調整モードへ
             Serial.println(" MODE_BRIGHTNESS_ADJ.");
           }
-          else if(mode == MODE_BRIGHTNESS_ADJ){ // 輝度設定モード
+          else if(mode == MODE_BRIGHTNESS_ADJ){ // VFD輝度調整モード
             modeset(MODE_CLOCK_ADJ);              // 時計設定モードへ
             Serial.println(" MODE_CLOCK_ADJ.");
           }
@@ -925,7 +932,7 @@ void keyman(void)
             calender_adj(CAL_ADJ_UP);             // カレンダー Plus
             Serial.println(" CAL_ADJ_UP.");
           }
-          else if(mode == MODE_BRIGHTNESS_ADJ_SET){ // 輝度操作実行モード
+          else if(mode == MODE_BRIGHTNESS_ADJ_SET){ // VFD輝度調整実行モード
             brightness_adj(BR_ADJ_BRUP);              // 輝度 Plus
             Serial.println(" BR_ADJ_BRUP.");
           }
@@ -953,7 +960,7 @@ void keyman(void)
         Serial.println("SW3 Short On");
         if (mode_m == MODE_M_SET) {           // 設定モード
           if (mode == MODE_CLOCK_ADJ) {         // 時計設定モード
-            modeset(MODE_BRIGHTNESS_ADJ);         // 輝度設定モードへ
+            modeset(MODE_BRIGHTNESS_ADJ);         // VFD輝度調整モードへ
             Serial.println(" MODE_BRIGHTNESS_ADJ.");
           }
           else if(mode == MODE_CAL_ADJ){        // カレンダー設定モード
@@ -968,7 +975,7 @@ void keyman(void)
             modeset(MODE_CLOCK_1224SEL);          // 時計表示 12h<>24h設定モードへ
             Serial.println(" MODE_CLOCK_1224SEL.");
           }
-          else if(mode == MODE_BRIGHTNESS_ADJ){ // 輝度設定モード
+          else if(mode == MODE_BRIGHTNESS_ADJ){ // VFD輝度調整モード
             modeset(MODE_FADETIME_ADJ);           // クロスフェード時間設定モードへ
             Serial.println(" MODE_FADETIME_ADJ.");
           }
@@ -982,7 +989,7 @@ void keyman(void)
             calender_adj(CAL_ADJ_DOWN);             // カレンダー Minus
             Serial.println(" CAL_ADJ_DOWN.");
           }
-          else if(mode == MODE_BRIGHTNESS_ADJ_SET){ // 輝度操作実行モード
+          else if(mode == MODE_BRIGHTNESS_ADJ_SET){ // VFD輝度調整実行モード
             brightness_adj(BR_ADJ_BRDOWN);              // 輝度 Minus
             Serial.println(" BR_ADJ_BRDOWN.");
           }
@@ -1702,7 +1709,7 @@ void led_man(unsigned char mode) {
   unsigned char led_comw;
   unsigned char led_tmp;
 
-  if (mode == MODE_BRIGHTNESS_ADJ) {   // 輝度調整時LED表示
+  if (mode == MODE_BRIGHTNESS_ADJ) {   // VFD輝度調整時LED表示
     led_hedw = 3;
     led_comw = 2;
   }
