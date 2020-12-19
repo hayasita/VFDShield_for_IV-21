@@ -177,6 +177,10 @@ unsigned char brightness_dig[DISP_KETAMAX];   // 表示各桁輝度
 #define BR_ADJ_BRUP   1  // 輝度UP
 #define BR_ADJ_BRDOWN 2  // 輝度DOWN
 
+struct CONFIG_DATA {
+  uint8_t format_hw;    // 時間表示フォーマット 12/24H
+};
+struct CONFIG_DATA config_data;
 
 //unsigned char i,j;
 unsigned char mode_m;    // 動作モード
@@ -331,6 +335,8 @@ void setup() {
       dcdc_runningf = OFF;
       Serial.println("DCDC Converter : Stop.");
   }
+
+  config_data.format_hw = 1;  // 24h 
 
 }
 
@@ -596,8 +602,19 @@ void clock_display(unsigned char *disp_tmp, unsigned char *piriod_tmp)
   disp_tmp[2] = date_time[0] / 10;
   disp_tmp[3] = date_time[1] % 10;
   disp_tmp[4] = date_time[1] / 10;
-  disp_tmp[5] = date_time[2] % 10;
-  disp_tmp[6] = date_time[2] / 10;
+  if(config_data.format_hw == 1){
+    disp_tmp[5] = date_time[2] % 10;
+    disp_tmp[6] = date_time[2] / 10;
+  }
+  else{
+    uint8_t tmpw;
+    tmpw = date_time[2];
+    if(date_time[2] > 12){
+      tmpw = tmpw - 12;
+    }
+    disp_tmp[5] = tmpw % 10;
+    disp_tmp[6] = tmpw / 10;
+  }
   disp_tmp[7] = DISP_K3;
 
   //  piriod_tmp[0] = piriod_tmp[2] = piriod_tmp[4] = 0x01;
@@ -617,6 +634,7 @@ void disp_alloff(unsigned char *disp_tmp, unsigned char *piriod_tmp) {
   return;
 }
 
+// 12h24h表示切替
 void clock1224set_adjtitle_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp) {
   char disptxt[] = "12H 24H SEL";
   display_scrolldat_make(disp_tmp,piriod_tmp,disptxt,5,5);
@@ -628,10 +646,17 @@ void clock1224set_adjtitle_dispdat_make(unsigned char *disp_tmp, unsigned char *
   return;
 }
 
+// 12h24h表示切替実行
 void clock1224set_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp) {
   disp_tmp[0] = DISP_H;
-  disp_tmp[1] = DISP_04;
-  disp_tmp[2] = DISP_02;
+  if(config_data.format_hw == 1){
+    disp_tmp[1] = DISP_04;
+    disp_tmp[2] = DISP_02;
+  }
+  else{
+    disp_tmp[1] = DISP_02;
+    disp_tmp[2] = DISP_01;
+  }
 
   disp_tmp[3] = DISP_NON;
   disp_tmp[4] = DISP_NON;
@@ -740,11 +765,20 @@ void brightness_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_
   if (count >= (second_counterw / 2)) {
     // ピリオド消灯処理
     piriod_tmp[adj_point] = 0x00;
+void format_h_make(void)        // 12/24H表示設定
+{
+  Serial.println(config_data.format_hw);
+  if(config_data.format_hw == 1){
+    config_data.format_hw = 0;
   }
   else {
     // ピリオド点灯処理
     piriod_tmp[adj_point] = 0x01;
+  else{
+    config_data.format_hw = 1;
   }
+  Serial.println("format_h_make");
+  Serial.println(config_data.format_hw);
 
   return;
 }
@@ -908,6 +942,10 @@ void keyman(void)
             calender_adj(CAL_ADJ_UP);             // カレンダー Plus
             Serial.println(" CAL_ADJ_UP.");
           }
+          else if(mode == MODE_CLOCK_1224SEL_SET){  // 時計表示 12h<>24h設定実行モード
+            format_h_make();
+            Serial.println(" FormatH_ADJ_UP.");
+          }
           else if(mode == MODE_BRIGHTNESS_ADJ_SET){ // VFD輝度調整実行モード
             brightness_adj(BR_ADJ_BRUP);              // 輝度 Plus
             Serial.println(" BR_ADJ_BRUP.");
@@ -964,6 +1002,10 @@ void keyman(void)
           else if(mode == MODE_CAL_ADJ_SET){    // カレンダー設定実行モード
             calender_adj(CAL_ADJ_DOWN);             // カレンダー Minus
             Serial.println(" CAL_ADJ_DOWN.");
+          }
+          else if(mode == MODE_CLOCK_1224SEL_SET){  // 時計表示 12h<>24h設定実行モード
+            format_h_make();
+            Serial.println(" FormatH_ADJ_DOWN.");
           }
           else if(mode == MODE_BRIGHTNESS_ADJ_SET){ // VFD輝度調整実行モード
             brightness_adj(BR_ADJ_BRDOWN);              // 輝度 Minus
