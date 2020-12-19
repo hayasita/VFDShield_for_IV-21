@@ -1,4 +1,5 @@
 //#include <MsTimer2.h>
+#include <stdint.h>
 #include "pins_arduino.h"
 #include <SPI.h>
 #include <TimerOne.h>
