@@ -515,12 +515,6 @@ void disp_datamake(void) {
   else if (mode == MODE_CAL_ADJ_SET) {                  // カレンダー設定実行
     calender_adj_dispdat_make(disp_tmp, piriod_tmp);
   }
-  else if (mode == MODE_BRIGHTNESS_ADJ) {               // VFD輝度調整
-    brightness_adj_dispdat_make(disp_tmp, piriod_tmp);
-  }
-  else if (mode == MODE_FILAMENT_SETUP) {
-    disp_alloff(disp_tmp, piriod_tmp);
-  }
   else if (mode == MODE_CLOCK_1224SEL){                 // 12h24h表示切替
     clock1224set_adjtitle_dispdat_make(disp_tmp, piriod_tmp);
   }
@@ -532,6 +526,15 @@ void disp_datamake(void) {
   }
   else if (mode == MODE_FADETIME_ADJ_SET){              // クロスフェード時間設定実行
     crossfade_adj_dispdat_make(disp_tmp, piriod_tmp);
+  }
+  else if (mode == MODE_BRIGHTNESS_ADJ) {               // VFD輝度調整
+    brightness_adjtitle_dispdat_make(disp_tmp, piriod_tmp);
+  }
+  else if (mode == MODE_BRIGHTNESS_ADJ_SET) {           // VFD輝度調整実行
+    brightness_adj_dispdat_make(disp_tmp, piriod_tmp);
+  }
+  else if (mode == MODE_FILAMENT_SETUP) {
+    disp_alloff(disp_tmp, piriod_tmp);
   }
 
 #endif
