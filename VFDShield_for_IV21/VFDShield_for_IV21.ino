@@ -336,7 +336,10 @@ void setup() {
       Serial.println("DCDC Converter : Stop.");
   }
 
-  config_data.format_hw = 1;  // 24h 
+//  
+  eerom_read();     // 設定値EEROM読み出し
+  Serial.println("config_data.format_hw : ");
+  Serial.println(config_data.format_hw);
 
 }
 
@@ -819,6 +822,8 @@ void format_h_make(void)        // 12/24H表示設定
   Serial.println("format_h_make");
   Serial.println(config_data.format_hw);
 
+  eerom_write();                // 設定値EEROM書き込み
+
   return;
 }
 
@@ -888,14 +893,38 @@ void brightness_eeprom_save(void)    // 輝度をEEPROMに保存
   return;
 }
 
-void eerom_write(int address,unsigned char value)
+// 設定値EEROM読み出し
+void eerom_read(void)
 {
-  int read_value;
-  
-  read_value = EEPROM.read(address);
-  if(read_value != (int)value){
-    EEPROM.write(address, (int)value);
+  uint8_t err = OFF;
+
+  EEPROM.get( 0x00, config_data );
+
+  if(config_data.format_hw > 1){
+    err = ON;
   }
+
+  if(err == ON){
+    eerom_ini();
+    eerom_write();
+  }
+
+  return;
+}
+
+// 設定値初期化
+void eerom_ini(void)
+{
+  config_data.format_hw = 1;  // 24h 
+
+  return;
+}
+
+// 設定値EEROM書き込み
+void eerom_write(void)
+{
+  EEPROM.put(0x00,config_data);
+
   return;
 }
 
@@ -934,6 +963,9 @@ void keyman(void)
           }
           else if(mode == MODE_CLOCK_1224SEL){          // 時計表示 12h<>24h設定モード
             modeset(MODE_CLOCK_1224SEL_SET);              // 時計表示 12h<>24h設定実行モードへ
+          }
+          else if(mode == MODE_CLOCK_1224SEL_SET){      // 時計表示 12h<>24h設定実行モード
+            modeset(MODE_CLOCK_1224SEL);                  // 時計表示 12h<>24h設定モードへ
           }
           else if (mode == MODE_BRIGHTNESS_ADJ) {       // VFD輝度調整モード
             modeset(MODE_BRIGHTNESS_ADJ_SET);             // VFD輝度調整実行モードへ
