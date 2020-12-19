@@ -499,14 +499,15 @@ void disp_datamake(void) {
     clock_display(disp_tmp, piriod_tmp);                  // 時刻情報作成
     symbol_display(disp_tmp, piriod_tmp);
   }
+  else if (mode == MODE_CAL) {                          // カレンダー表示
+    calender_display(disp_tmp, piriod_tmp);
+  }
+
   else if (mode == MODE_CLOCK_ADJ) {                    // 時刻設定
     clock_adjtitle_dispdat_make(disp_tmp, piriod_tmp);
   }
   else if (mode == MODE_CLOCK_ADJ_SET) {                // 時刻設定実行
     clock_adj_dispdat_make(disp_tmp, piriod_tmp);
-  }
-  else if (mode == MODE_CAL) {                          // カレンダー表示
-    calender_display(disp_tmp, piriod_tmp);
   }
   else if (mode == MODE_CAL_ADJ) {                      // カレンダー設定
     calender_adjtitle_dispdat_make(disp_tmp, piriod_tmp);
@@ -679,6 +680,36 @@ void crossfade_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_t
   return;
 }
 
+// VFD輝度調整
+void brightness_adjtitle_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp) {
+  char disptxt[] = "BRIGHTNES SET";
+  display_scrolldat_make(disp_tmp,piriod_tmp,disptxt,5,5);
+  disp_tmp[6] = DISP_NON;
+  disp_tmp[7] = DISP_05;
+  disp_tmp[8] = DISP_K1;
+  piriod_tmp[7] = 0x01;
+
+  return;
+}
+
+// VFD輝度調整実行
+void brightness_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp) {
+  for (unsigned char i = 0; i < 9; i++) {
+    disp_tmp[i] = DISP_08;
+    piriod_tmp[i] = 0x00;
+  }
+  if (count >= (second_counterw / 2)) {
+    // ピリオド消灯処理
+    piriod_tmp[adj_point] = 0x00;
+  }
+  else {
+    // ピリオド点灯処理
+    piriod_tmp[adj_point] = 0x01;
+  }
+
+  return;
+}
+
 /* 表示スクロールデータ作成 */
 long scroll_tim_nowl;
 unsigned char disp_point;
@@ -757,23 +788,12 @@ void display_scrolldat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp,u
   return;
 }
 
-void brightness_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp) {
-  for (unsigned char i = 0; i < 9; i++) {
-    disp_tmp[i] = DISP_08;
-    piriod_tmp[i] = 0x00;
-  }
-  if (count >= (second_counterw / 2)) {
-    // ピリオド消灯処理
-    piriod_tmp[adj_point] = 0x00;
 void format_h_make(void)        // 12/24H表示設定
 {
   Serial.println(config_data.format_hw);
   if(config_data.format_hw == 1){
     config_data.format_hw = 0;
   }
-  else {
-    // ピリオド点灯処理
-    piriod_tmp[adj_point] = 0x01;
   else{
     config_data.format_hw = 1;
   }
@@ -782,6 +802,7 @@ void format_h_make(void)        // 12/24H表示設定
 
   return;
 }
+
 void brightness_adj(unsigned char keyw)  // 時刻合わせ
 {
   if (keyw == BR_ADJ_DIGUP) {  // 輝度調整桁変更
