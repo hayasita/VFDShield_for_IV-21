@@ -528,6 +528,9 @@ void disp_datamake(void) {
     clock1224set_dispdat_make(disp_tmp, piriod_tmp);
   }
   else if (mode == MODE_FADETIME_ADJ){                  // クロスフェード時間設定
+    crossfade_adjtitle_dispdat_make(disp_tmp, piriod_tmp);
+  }
+  else if (mode == MODE_FADETIME_ADJ_SET){              // クロスフェード時間設定実行
     crossfade_adj_dispdat_make(disp_tmp, piriod_tmp);
   }
 
@@ -670,6 +673,19 @@ void clock1224set_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tm
   return;
 }
 
+// クロスフェード時間設定
+void crossfade_adjtitle_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp) {
+  char disptxt[] = "CROSS FADE TIME SET";
+  display_scrolldat_make(disp_tmp,piriod_tmp,disptxt,5,5);
+  disp_tmp[6] = DISP_NON;
+  disp_tmp[7] = DISP_04;
+  disp_tmp[8] = DISP_K1;
+  piriod_tmp[7] = 0x01;
+
+  return;
+}
+
+// クロスフェード時間設定実行
 void crossfade_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp) {
   for (unsigned char i = 0; i < 9; i++) {
     disp_tmp[i] = DISP_NON;
