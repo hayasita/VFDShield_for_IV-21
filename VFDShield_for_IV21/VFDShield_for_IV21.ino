@@ -732,6 +732,45 @@ void brightness_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_
   return;
 }
 
+/* 表示データ点滅 */
+long blinking_tim_nowl;
+uint8_t blinking_state;
+void display_blinking_make_ini(){
+
+  blinking_state = 0;
+  blinking_tim_nowl = millis();
+  return;
+}
+void display_blinking_make(uint8_t *disp_tmp, uint8_t *piriod_tmp,uint8_t startp,uint8_t dispnum)
+{
+  if(startp > 7){
+    startp = 7;
+  }
+  if(dispnum > startp){
+    dispnum = startp;
+  }
+
+  if( ( millis() - blinking_tim_nowl ) > 1000){
+
+    if(blinking_state == 0){
+      blinking_state = 1;
+
+    }
+    else{
+      blinking_state = 0;
+    }
+
+    blinking_tim_nowl = millis();
+  }
+  if(blinking_state == 1){
+        for(uint8_t i=0;i<1;i++){
+        disp_tmp[startp + i] = DISP_NON;
+      }
+  }
+
+  return;
+}
+
 /* 表示スクロールデータ作成 */
 long scroll_tim_nowl;
 unsigned char disp_point;
