@@ -646,7 +646,7 @@ void disp_alloff(unsigned char *disp_tmp, unsigned char *piriod_tmp) {
 
 // 12h24h表示切替
 void clock1224set_adjtitle_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp) {
-  char disptxt[] = "12H 24H SEL";
+  char disptxt[] = "12H24H SEL";
   display_scrolldat_make(disp_tmp,piriod_tmp,disptxt,5,5);
   disp_tmp[6] = DISP_NON;
   disp_tmp[7] = DISP_03;
