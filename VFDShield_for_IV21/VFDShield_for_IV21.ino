@@ -466,6 +466,7 @@ void modeset(unsigned char setmode)
   if(mode != lastmode){             // モード変更あり
     lastmode = mode;                // 前回モード = 今回モード
     display_scrolldat_make_ini();   // スクロール表示データ初期化
+    display_blinking_make_ini();    // 表示データ点滅初期化
   }
 
   return;
