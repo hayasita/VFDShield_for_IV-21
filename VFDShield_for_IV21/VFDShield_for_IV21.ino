@@ -794,12 +794,8 @@ void display_blinking_make(uint8_t *disp_tmp, uint8_t *piriod_tmp,uint8_t startp
 long scroll_tim_nowl;
 unsigned char disp_point;
 void display_scrolldat_make_ini(){
-
-  Serial.println("display_scrolldat_mak_ini()");
-
   disp_point = 0;
   scroll_tim_nowl = millis();
-  Serial.println(scroll_tim_nowl);
   return;
 }
 
@@ -826,11 +822,6 @@ void display_scrolldat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp,u
   }
 
   if( ( millis() - scroll_tim_nowl ) > scrool_wait){
-    Serial.print(strlen(disp_data));
-    Serial.print(" : ");
-    Serial.print(disp_point);
-
-//    for(unsigned char i=0 ; i<8 ; i++){
     for(unsigned char i=0 ; i<=dispnum ; i++){
       disp_tmpp = startp-i;
 
@@ -848,16 +839,12 @@ void display_scrolldat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp,u
           tmp = DISP_NON;
         }
         disp_tmp[disp_tmpp] = tmp;
-
-        Serial.print(" : ");
-        Serial.print(tmp);
       }
       else{
         disp_tmp[disp_tmpp] = DISP_NON;
       }
       piriod_tmp[disp_tmpp] = 0x00;
     }
-    Serial.println(".");
     disp_point++;
     if(disp_point > strlen(disp_data) ){
       disp_point = 0;
