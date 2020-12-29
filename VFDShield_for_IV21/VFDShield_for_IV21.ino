@@ -401,6 +401,7 @@ void modeset_m(unsigned char setmode)
   else if (setmode == MODE_M_SET) {               // 設定モード
     mode_m = MODE_M_SET;                            // 設定モードへ
     Serial.println("Mode_M : Set Mode.");
+    config_tmp.format_hw = config_data.format_hw;   // 設定用tmp初期化
     config_tmp.fadetimew = config_data.fadetimew;   // 設定用tmp初期化
   }
   else{                                           // 仕様外の場合は、表示モード・時計表示とする
@@ -462,9 +463,12 @@ void modeset(unsigned char setmode)
   }
   else if (setmode == MODE_CLOCK_1224SEL){
     mode = MODE_CLOCK_1224SEL;
+    config_data.format_hw = config_tmp.format_hw;   // 時間表示フォーマット設定更新
+    eerom_write();                                  // 設定値EEROM書き込み
   }
   else if (setmode == MODE_CLOCK_1224SEL_SET){
     mode = MODE_CLOCK_1224SEL_SET;
+    config_tmp.format_hw = config_data.format_hw;   // 時間表示フォーマット設定用tmp作成
   }
   else if (setmode == MODE_FADETIME_ADJ){         // クロスフェード時間設定
     mode = MODE_FADETIME_ADJ;
@@ -696,7 +700,7 @@ void clock1224set_adjtitle_dispdat_make(unsigned char *disp_tmp, unsigned char *
 // 12h24h表示切替実行
 void clock1224set_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp) {
   disp_tmp[0] = DISP_H;
-  if(config_data.format_hw == 1){
+  if(config_tmp.format_hw == 1){
     disp_tmp[1] = DISP_04;
     disp_tmp[2] = DISP_02;
   }
@@ -879,14 +883,14 @@ void display_scrolldat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp,u
 void format_h_make(void)        // 12/24H表示設定
 {
   Serial.println(config_data.format_hw);
-  if(config_data.format_hw == 1){
-    config_data.format_hw = 0;
+  if(config_tmp.format_hw == 1){
+    config_tmp.format_hw = 0;
   }
   else{
-    config_data.format_hw = 1;
+    config_tmp.format_hw = 1;
   }
   Serial.println("format_h_make");
-  Serial.println(config_data.format_hw);
+  Serial.println(config_tmp.format_hw);
 
   eerom_write();                // 設定値EEROM書き込み
 
