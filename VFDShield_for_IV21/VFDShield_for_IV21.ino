@@ -448,9 +448,12 @@ void modeset(unsigned char setmode)
     Serial.println("Mode : Calender ADJ.");
   }
   else if (setmode == MODE_BRIGHTNESS_ADJ) {      // VFD輝度調整
+    mode = MODE_BRIGHTNESS_ADJ;
+  }
+  else if (setmode == MODE_BRIGHTNESS_ADJ_SET) {      // VFD輝度調整
     adj_point = ADJ_BR1;     // 1桁目から開始する
     adj_runf = OFF;          // 調整実行フラグ初期化
-    mode = MODE_BRIGHTNESS_ADJ;
+    mode = MODE_BRIGHTNESS_ADJ_SET;
     Serial.println("Mode : Brightness ADJ.");
   }
   else if (setmode == MODE_BRIGHTNESS_SAVE) {
@@ -917,7 +920,7 @@ void fadetime_adj(uint8_t keyw)   // クロスフェード時間設定
   return;
 }
 
-void brightness_adj(unsigned char keyw)  // 時刻合わせ
+void brightness_adj(unsigned char keyw)  // 輝度調整
 {
   if (keyw == BR_ADJ_DIGUP) {  // 輝度調整桁変更
     if (adj_point == ADJ_BR9) {
@@ -947,6 +950,10 @@ void brightness_adj(unsigned char keyw)  // 時刻合わせ
     }
   }
 
+  Serial.print("brightness_dig[");
+  Serial.print(adj_point - ADJ_BR1);
+  Serial.print("]:");
+  Serial.println(brightness_dig[adj_point - ADJ_BR1]);
   return;
 }
 void brightness_ini(void)
@@ -1852,7 +1859,7 @@ void disp_vfd_iv21(void)
   //disp[0] = font[disp_fadecount[2]%10] | keta_dat[0];           // debug
 
   // 各桁輝度決定PWM処理
-  if ((pwm_countw & 0x0F)  >= disp_ketapwm[dispketaw] ) {   // PWM処理
+  if ((pwm_countw & 0x0F)  >= brightness_tmpw ) {   // PWM処理
     dispdata = font[DISP_NON];                              // PWM消灯
   }else{
     if(((pwm_countw & 0x0F) < disp_fadecount[dispketaw]) || (disp_fade_modew == 0)){    // PWM点灯 // クロスフェード今回：前回表示比率判定　暫定でpwm_countwを使用する
