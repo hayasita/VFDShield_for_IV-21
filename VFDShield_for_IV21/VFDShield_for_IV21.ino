@@ -979,7 +979,7 @@ void eerom_read(void)
   if(config_data.format_hw > 1){
     err = ON;
   }
-  if((config_data.fadetimew > 9) || (config_data.fadetimew == 0)){
+  if(config_data.fadetimew > 9){    // クロスフェード時間設定値：0～9
     err = ON;
   }
 
