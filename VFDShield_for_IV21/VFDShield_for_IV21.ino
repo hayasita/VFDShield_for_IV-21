@@ -640,17 +640,27 @@ void clock_display(unsigned char *disp_tmp, unsigned char *piriod_tmp)
   disp_tmp[3] = date_time[1] % 10;
   disp_tmp[4] = date_time[1] / 10;
   if(config_data.format_hw == 1){
+    // 24h表示
     disp_tmp[5] = date_time[2] % 10;
     disp_tmp[6] = date_time[2] / 10;
   }
   else{
+    // 12h表示
     uint8_t tmpw;
     tmpw = date_time[2];
     if(date_time[2] > 12){
       tmpw = tmpw - 12;
     }
+    // 1位作成
     disp_tmp[5] = tmpw % 10;
-    disp_tmp[6] = tmpw / 10;
+    // 10位作成
+    if(tmpw >= 10){
+      tmpw = tmpw / 10;
+    }
+    else{
+      tmpw = DISP_NON;
+    }
+    disp_tmp[6] = tmpw;
   }
   disp_tmp[7] = DISP_K3;
 
