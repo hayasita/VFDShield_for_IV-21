@@ -186,7 +186,8 @@ struct CONFIG_DATA {    // 動作設定値
   uint8_t format_hw;    // 時間表示フォーマット 12/24H
   uint8_t fadetimew;    // クロスフェード時間(1~9)
 };
-struct CONFIG_DATA config_data;
+struct CONFIG_DATA config_data;     // 設定データ
+struct CONFIG_DATA config_tmp;      // 設定データtmp
 
 //unsigned char i,j;
 unsigned char mode_m;    // 動作モード
@@ -400,6 +401,7 @@ void modeset_m(unsigned char setmode)
   else if (setmode == MODE_M_SET) {               // 設定モード
     mode_m = MODE_M_SET;                            // 設定モードへ
     Serial.println("Mode_M : Set Mode.");
+    config_tmp.fadetimew = config_data.fadetimew;   // 設定用tmp初期化
   }
   else{                                           // 仕様外の場合は、表示モード・時計表示とする
     mode_m = MODE_M_DISP;
@@ -466,9 +468,12 @@ void modeset(unsigned char setmode)
   }
   else if (setmode == MODE_FADETIME_ADJ){         // クロスフェード時間設定
     mode = MODE_FADETIME_ADJ;
+    config_data.fadetimew = config_tmp.fadetimew;   // クロスフェード時間設定更新
+    eerom_write();                                  // 設定値EEROM書き込み
   }
   else if (setmode == MODE_FADETIME_ADJ_SET){     // クロスフェード時間設定実行
     mode = MODE_FADETIME_ADJ_SET;
+    config_tmp.fadetimew = config_data.fadetimew;   // クロスフェード時間設定用tmp作成
   }
   else{
   //  mode = setmode;
@@ -566,7 +571,13 @@ void disp_datamake(void) {
     dispdata_tmp[i] = dispdata;
   }
 
-  fadetime_tmpw = config_data.fadetimew * 100;   // クロスフェード時間作成
+  // クロスフェード時間作成
+  if(mode == MODE_FADETIME_ADJ_SET){              // クロスフェード時間設定実行
+    fadetime_tmpw = config_tmp.fadetimew * 100;     // 設定用tmpから作成する
+  }
+  else{
+    fadetime_tmpw = config_data.fadetimew * 100;
+  }
 
   noInterrupts();      // 割り込み禁止
   for (i = 0; i < 9; i++) {
@@ -714,7 +725,7 @@ void crossfade_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_t
     piriod_tmp[i] = 0;
   }
 
-  disp_tmp[0] = DISP_00 + config_data.fadetimew;
+  disp_tmp[0] = DISP_00 + config_tmp.fadetimew;
   disp_tmp[8] = DISP_K1;
   display_blinking_make(disp_tmp,piriod_tmp,0,1);
 
@@ -874,22 +885,20 @@ void format_h_make(void)        // 12/24H表示設定
 
 void fadetime_adj(uint8_t keyw)   // クロスフェード時間設定
 {
-  Serial.println(config_data.fadetimew);
+  Serial.println(config_tmp.fadetimew);
 
   if (keyw == ADJ_UP){
-    if(config_data.fadetimew < 9){
-      config_data.fadetimew ++;
+    if(config_tmp.fadetimew < 9){
+      config_tmp.fadetimew ++;
     }
   }
   else if (keyw == ADJ_DOWN){
-    if(config_data.fadetimew > 0){
-      config_data.fadetimew --;
+    if(config_tmp.fadetimew > 0){
+      config_tmp.fadetimew --;
     }
   }
   Serial.println("fadetimew_make");
-  Serial.println(config_data.fadetimew);
-
-  eerom_write();                // 設定値EEROM書き込み
+  Serial.println(config_tmp.fadetimew);
 
   return;
 }
