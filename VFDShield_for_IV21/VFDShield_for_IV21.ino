@@ -165,7 +165,6 @@ unsigned long font[] = {
 unsigned long disp[DISP_KETAMAX];             // 数値表示データ
 unsigned char disp_p[DISP_KETAMAX];           // 各桁ピリオドデータ
 unsigned long disp_last[DISP_KETAMAX];        // 前回数値表示データ
-unsigned char disp_fadecount[DISP_KETAMAX];   // クロスフェードサイクルカウンタ
 unsigned char disp_ketapwm[DISP_KETAMAX] = {  // 各桁輝度初期値
   15, 15, 15, 15, 15, 15, 15, 15, 15          // 0～15で設定
 };
@@ -177,8 +176,15 @@ unsigned char brightness_dig[DISP_KETAMAX];   // 表示各桁輝度
 #define BR_ADJ_BRUP   1  // 輝度UP
 #define BR_ADJ_BRDOWN 2  // 輝度DOWN
 
-struct CONFIG_DATA {
+unsigned char disp_fadecount[DISP_KETAMAX];   // クロスフェードサイクルカウンタ
+uint16_t disp_fadetimei;                      // クロスフェード時間（割込）(msec)
+#define FADETIME_DEF  2;                      // クロスフェード時間初期値
+#define ADJ_UP        1  // UPキー入力
+#define ADJ_DOWN      2  // DOWNキー入力
+
+struct CONFIG_DATA {    // 動作設定値
   uint8_t format_hw;    // 時間表示フォーマット 12/24H
+  uint8_t fadetimew;    // クロスフェード時間(1~9)
 };
 struct CONFIG_DATA config_data;
 
@@ -338,8 +344,10 @@ void setup() {
 
 //  
   eerom_read();     // 設定値EEROM読み出し
-  Serial.println("config_data.format_hw : ");
+  Serial.print("config_data.format_hw : ");
   Serial.println(config_data.format_hw);
+  Serial.print("config_data.fadetimew : ");
+  Serial.println(config_data.fadetimew);
 
 }
 
@@ -456,8 +464,11 @@ void modeset(unsigned char setmode)
   else if (setmode == MODE_CLOCK_1224SEL_SET){
     mode = MODE_CLOCK_1224SEL_SET;
   }
-  else if (setmode == MODE_FADETIME_ADJ){
+  else if (setmode == MODE_FADETIME_ADJ){         // クロスフェード時間設定
     mode = MODE_FADETIME_ADJ;
+  }
+  else if (setmode == MODE_FADETIME_ADJ_SET){     // クロスフェード時間設定実行
+    mode = MODE_FADETIME_ADJ_SET;
   }
   else{
   //  mode = setmode;
@@ -478,6 +489,7 @@ void disp_datamake(void) {
   unsigned char piriod_tmp[DISP_KETAMAX];     // 各桁ピリオド
   unsigned long dispdata_tmp[DISP_KETAMAX];   // 各桁表示データ(font情報)
   unsigned long dispdata;                     // 表示データ作成用tmp
+  uint16_t fadetime_tmpw;                     // クロスフェード時間受け渡し用データ
 
 #ifdef KEY_TEST
   disp_tmp[0] = key_now % 10;
@@ -554,10 +566,13 @@ void disp_datamake(void) {
     dispdata_tmp[i] = dispdata;
   }
 
+  fadetime_tmpw = config_data.fadetimew * 100;   // クロスフェード時間作成
+
   noInterrupts();      // 割り込み禁止
   for (i = 0; i < 9; i++) {
     disp[i] = dispdata_tmp[i];
   }
+  disp_fadetimei = fadetime_tmpw;               // クロスフェード時間受け渡し
   interrupts();        // 割り込み許可
 
   return;
@@ -698,8 +713,11 @@ void crossfade_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_t
     disp_tmp[i] = DISP_NON;
     piriod_tmp[i] = 0;
   }
-  disp_tmp[0] = DISP_07;
+
+  disp_tmp[0] = DISP_00 + config_data.fadetimew;
   disp_tmp[8] = DISP_K1;
+  display_blinking_make(disp_tmp,piriod_tmp,0,1);
+
   return;
 }
 
@@ -867,6 +885,28 @@ void format_h_make(void)        // 12/24H表示設定
   return;
 }
 
+void fadetime_adj(uint8_t keyw)   // クロスフェード時間設定
+{
+  Serial.println(config_data.fadetimew);
+
+  if (keyw == ADJ_UP){
+    if(config_data.fadetimew < 9){
+      config_data.fadetimew ++;
+    }
+  }
+  else if (keyw == ADJ_DOWN){
+    if(config_data.fadetimew > 0){
+      config_data.fadetimew --;
+    }
+  }
+  Serial.println("fadetimew_make");
+  Serial.println(config_data.fadetimew);
+
+  eerom_write();                // 設定値EEROM書き込み
+
+  return;
+}
+
 void brightness_adj(unsigned char keyw)  // 時刻合わせ
 {
   if (keyw == BR_ADJ_DIGUP) {  // 輝度調整桁変更
@@ -943,6 +983,9 @@ void eerom_read(void)
   if(config_data.format_hw > 1){
     err = ON;
   }
+  if((config_data.fadetimew > 9) || (config_data.fadetimew == 0)){
+    err = ON;
+  }
 
   if(err == ON){
     eerom_ini();
@@ -955,8 +998,8 @@ void eerom_read(void)
 // 設定値初期化
 void eerom_ini(void)
 {
-  config_data.format_hw = 1;  // 24h 
-
+  config_data.format_hw = 1;              // 24h 
+  config_data.fadetimew = FADETIME_DEF;   // クロスフェード時間初期値
   return;
 }
 
@@ -1006,6 +1049,12 @@ void keyman(void)
           }
           else if(mode == MODE_CLOCK_1224SEL_SET){      // 時計表示 12h<>24h設定実行モード
             modeset(MODE_CLOCK_1224SEL);                  // 時計表示 12h<>24h設定モードへ
+          }
+          else if(mode == MODE_FADETIME_ADJ){           // クロスフェード時間設定
+            modeset(MODE_FADETIME_ADJ_SET);               // クロスフェード時間設定実行へ
+          }
+          else if(mode == MODE_FADETIME_ADJ_SET){       // クロスフェード時間設定実行
+            modeset(MODE_FADETIME_ADJ);                   // クロスフェード時間設定へ
           }
           else if (mode == MODE_BRIGHTNESS_ADJ) {       // VFD輝度調整モード
             modeset(MODE_BRIGHTNESS_ADJ_SET);             // VFD輝度調整実行モードへ
@@ -1057,6 +1106,10 @@ void keyman(void)
           else if(mode == MODE_CLOCK_1224SEL_SET){  // 時計表示 12h<>24h設定実行モード
             format_h_make();
             Serial.println(" FormatH_ADJ_UP.");
+          }
+          else if(mode == MODE_FADETIME_ADJ_SET){   // クロスフェード時間設定実行
+            fadetime_adj(ADJ_UP);
+            Serial.println(" ADJ_UP.");
           }
           else if(mode == MODE_BRIGHTNESS_ADJ_SET){ // VFD輝度調整実行モード
             brightness_adj(BR_ADJ_BRUP);              // 輝度 Plus
@@ -1118,6 +1171,10 @@ void keyman(void)
           else if(mode == MODE_CLOCK_1224SEL_SET){  // 時計表示 12h<>24h設定実行モード
             format_h_make();
             Serial.println(" FormatH_ADJ_DOWN.");
+          }
+          else if(mode == MODE_FADETIME_ADJ_SET){   // クロスフェード時間設定実行
+            fadetime_adj(ADJ_DOWN);
+            Serial.println(" ADJ_DOWN.");
           }
           else if(mode == MODE_BRIGHTNESS_ADJ_SET){ // VFD輝度調整実行モード
             brightness_adj(BR_ADJ_BRDOWN);              // 輝度 Minus
@@ -1769,7 +1826,7 @@ void disp_vfd_iv21(void)
   if((disp_last[dispketaw] != disp[dispketaw]) && (disp_fadecount[dispketaw] == 0)){  // 表示データ更新された && クロスフェードサイクルカウンタ未更新
     if(disp_fade_modew != 0){
       lasttime[dispketaw] = millis();                             // クロスフェードサイクルカウンタ更新間隔初期化
-      fade_cyclel[dispketaw] = 200 / brightness_tmpw;             // クロスフェードサイクルカウンタ更新間隔計算　200ms/輝度
+      fade_cyclel[dispketaw] = disp_fadetimei / brightness_tmpw;  // クロスフェードサイクルカウンタ更新間隔計算　200ms/輝度
       disp_fadecount[dispketaw]++;                                // クロスフェードサイクルカウンタ更新
     }else{
       disp_last[dispketaw] = disp[dispketaw];                     // 前回データに今回データをコピー
