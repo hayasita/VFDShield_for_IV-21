@@ -210,8 +210,9 @@ unsigned char mode;      // 設定モード
 #define MODE_DISPTYPE_SEL_SET           19    // 
 #define MODE_BRIGHTNESS_ADJ             20    // VFD輝度調整
 #define MODE_BRIGHTNESS_ADJ_SET         21    // VFD輝度調整実行
-#define MODE_BRIGHTNESS_SAVE            22    // VFD輝度記録
-#define MODE_FILAMENT_SETUP             23    // VFDフィラメント電圧調整　全消灯
+#define MODE_BRIGHTNESS_VIEW            22    // VFD輝度設定値表示
+#define MODE_BRIGHTNESS_SAVE            23    // VFD輝度記録
+#define MODE_FILAMENT_SETUP             24    // VFDフィラメント電圧調整　全消灯
 
 #define MODE_ERR_                       100   // エラー番号閾値　100以上はエラーモード定義として使用する。
 #define MODE_ERR_CPU_VOLTAGE            101   // CPU電圧エラー
@@ -456,6 +457,10 @@ void modeset(unsigned char setmode)
     mode = MODE_BRIGHTNESS_ADJ_SET;
     Serial.println("Mode : Brightness ADJ.");
   }
+  else if (setmode == MODE_BRIGHTNESS_VIEW) {       // VFD輝度調整
+    mode = MODE_BRIGHTNESS_VIEW;
+//    Serial.println("Mode : Brightness View.");
+  }
   else if (setmode == MODE_BRIGHTNESS_SAVE) {
     brightness_eeprom_save();    // 輝度をEEPROMに保存
     modeset_m(MODE_M_DISP);       // 通常表示モードへ
@@ -560,6 +565,9 @@ void disp_datamake(void) {
   }
   else if (mode == MODE_BRIGHTNESS_ADJ_SET) {           // VFD輝度調整実行
     brightness_adj_dispdat_make(disp_tmp, piriod_tmp);
+  }
+  else if (mode == MODE_BRIGHTNESS_VIEW) {              // VFD輝度設定値表示
+    brightness_dataview_dispdat_make(disp_tmp, piriod_tmp);
   }
   else if (mode == MODE_FILAMENT_SETUP) {
     disp_alloff(disp_tmp, piriod_tmp);
@@ -775,6 +783,24 @@ void brightness_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_
     // ピリオド点灯処理
     piriod_tmp[adj_point] = 0x01;
   }
+
+  return;
+}
+
+// VFD輝度設定値表示
+void brightness_dataview_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp) {
+  uint8_t count;
+
+  for(count = 0;count<8;count++){
+    if(brightness_dig[count]<10){
+      disp_tmp[count] = DISP_00 + brightness_dig[count];
+    }
+    else{
+      disp_tmp[count] = DISP_A + brightness_dig[count] - 10;
+    }
+    
+  }
+  disp_tmp[8] = DISP_K1;
 
   return;
 }
@@ -1241,7 +1267,27 @@ void keyman(void)
           modeset(MODE_CLOCK);                  // 時計表示モードへ
         }
         break;
-    
+        
+      case 0b010:
+        Serial.println("SW2 Long On");
+        if(mode == MODE_BRIGHTNESS_ADJ_SET){      // VFD輝度調整実行
+          modeset(MODE_BRIGHTNESS_VIEW);            // VFD輝度設定値表示
+        }
+        else if(mode == MODE_BRIGHTNESS_VIEW){    // VFD輝度調整実行
+          modeset(MODE_BRIGHTNESS_ADJ_SET);         // VFD輝度設定値表示
+        }
+        break;
+
+      case 0b100:
+        Serial.println("SW3 Long On");
+        if(mode == MODE_BRIGHTNESS_ADJ_SET){      // VFD輝度調整実行
+          modeset(MODE_BRIGHTNESS_VIEW);            // VFD輝度設定値表示
+        }
+        else if(mode == MODE_BRIGHTNESS_VIEW){    // VFD輝度調整実行
+          modeset(MODE_BRIGHTNESS_ADJ_SET);         // VFD輝度設定値表示
+        }
+        break;
+
      default:
         //        Serial.println("LOther");
         break;
