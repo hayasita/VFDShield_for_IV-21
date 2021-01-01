@@ -165,12 +165,8 @@ unsigned long font[] = {
 unsigned long disp[DISP_KETAMAX];             // 数値表示データ
 unsigned char disp_p[DISP_KETAMAX];           // 各桁ピリオドデータ
 unsigned long disp_last[DISP_KETAMAX];        // 前回数値表示データ
-//unsigned char disp_ketapwm[DISP_KETAMAX] = {  // 各桁輝度初期値
-//  15, 15, 15, 15, 15, 15, 15, 15, 15          // 0～15で設定
-//};
 #define DISP_PWM_MAX  15                      // 最大輝度0x0f
 unsigned char brightness_dig[DISP_KETAMAX];   // 表示各桁輝度
-//uint8_t brightness_digi[DISP_KETAMAX];        // 表示各桁輝度（割込）
 uint8_t *brp;
 #define BR_MAX        15 // 最大輝度
 #define BR_DEF        9  // 輝度初期値
@@ -215,8 +211,7 @@ unsigned char mode;      // 設定モード
 #define MODE_BRIGHTNESS_ADJ             20    // VFD輝度調整
 #define MODE_BRIGHTNESS_ADJ_SET         21    // VFD輝度調整実行
 #define MODE_BRIGHTNESS_VIEW            22    // VFD輝度設定値表示
-#define MODE_BRIGHTNESS_SAVE            23    // VFD輝度記録
-#define MODE_FILAMENT_SETUP             24    // VFDフィラメント電圧調整　全消灯
+#define MODE_FILAMENT_SETUP             23    // VFDフィラメント電圧調整　全消灯
 
 #define MODE_ERR_                       100   // エラー番号閾値　100以上はエラーモード定義として使用する。
 #define MODE_ERR_CPU_VOLTAGE            101   // CPU電圧エラー
@@ -483,11 +478,6 @@ void modeset(unsigned char setmode)
     mode = MODE_BRIGHTNESS_VIEW;
 //    Serial.println("Mode : Brightness View.");
   }
-  else if (setmode == MODE_BRIGHTNESS_SAVE) {
-    brightness_eeprom_save();    // 輝度をEEPROMに保存
-    modeset_m(MODE_M_DISP);       // 通常表示モードへ
-    modeset(MODE_CLOCK);         // 動作モードを時計表示にする。
-  }
   else if (setmode == MODE_FILAMENT_SETUP) {
     mode = MODE_FILAMENT_SETUP;
   }
@@ -529,7 +519,6 @@ void disp_datamake(void) {
   unsigned long dispdata_tmp[DISP_KETAMAX];   // 各桁表示データ(font情報)
   unsigned long dispdata;                     // 表示データ作成用tmp
   uint16_t fadetime_tmpw;                     // クロスフェード時間受け渡し用データ
-//  uint8_t brightness_dig_tmpw[DISP_KETAMAX];  // 表示各桁輝度受け渡し用データ
 
 #ifdef KEY_TEST
   disp_tmp[0] = key_now % 10;
@@ -617,21 +606,13 @@ void disp_datamake(void) {
     fadetime_tmpw = config_data.fadetimew * 100;
   }
 
-/*
-  if((mode == MODE_BRIGHTNESS_ADJ_SET) || (mode == MODE_BRIGHTNESS_VIEW)){
-      brp = brightness_dig;
-  }
-  else{
-      brp = config_data.br_dig;
-  }
-*/
-
   noInterrupts();      // 割り込み禁止
   for (i = 0; i < DISP_KETAMAX; i++){
     disp[i] = dispdata_tmp[i];
   }
   disp_fadetimei = fadetime_tmpw;               // クロスフェード時間受け渡し
 
+  // VFD輝度情報の受け渡し
   if((mode == MODE_BRIGHTNESS_ADJ_SET) || (mode == MODE_BRIGHTNESS_VIEW)){
     brp = brightness_dig;
   }
@@ -1020,41 +1001,6 @@ void brightness_adj(unsigned char keyw)  // 輝度調整
   Serial.print(adj_point - ADJ_BR1);
   Serial.print("]:");
   Serial.println(brightness_dig[adj_point - ADJ_BR1]);
-  return;
-}
-
-void brightness_ini(void)
-{
-  unsigned char i;
-  unsigned char tmpw;
-  
-  tmpw = 0x00;
-  
-  if(tmpw == 0x5a){
-    // 輝度情報EEPROM読み出し
-    brightness_eeprom_load();
-  }
-  else{
-    // EEPROM 初期化
-    
-    // 輝度情報初期化
-    for (i = 0; i < 9; i++) {
-//      brightness_dig[i] = disp_ketapwm[i];
-    }
-    brightness_eeprom_save();
-  }
-
-
-  return;
-}
-
-void brightness_eeprom_load(void)    // 輝度をEEPROMから読み出し
-{
-
-  return;
-}
-void brightness_eeprom_save(void)    // 輝度をEEPROMに保存
-{
   return;
 }
 
@@ -1933,10 +1879,7 @@ void disp_vfd_iv21(void)
   }
 
   // 各桁輝度確認
-//  if (brightness_digi[dispketaw] <= DISP_PWM_MAX) {                // 輝度が仕様範囲内
-//    brightness_tmpw = brightness_digi[dispketaw];
-//  }
-  if (*(brp + dispketaw) <= DISP_PWM_MAX) {                // 輝度が仕様範囲内
+  if (*(brp + dispketaw) <= DISP_PWM_MAX) {       // 輝度が仕様範囲内
     brightness_tmpw = *(brp + dispketaw);
   }
   else {
@@ -1974,7 +1917,6 @@ void disp_vfd_iv21(void)
   }
 
   // クロスフェード終了判定
-//  if(disp_fadecount[dispketaw] == disp_ketapwm[dispketaw]){ // クロスフェードカウンタ最大値（輝度）到達
   if(disp_fadecount[dispketaw] == brightness_tmpw){         // クロスフェードカウンタ最大値（輝度）到達
     disp_last[dispketaw] = disp[dispketaw];                 // 前回データに今回データをコピー
     disp_fadecount[dispketaw] = 0;                          // クロスフェードカウンタクリア
