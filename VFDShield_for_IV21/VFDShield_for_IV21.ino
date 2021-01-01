@@ -1,5 +1,6 @@
 //#include <MsTimer2.h>
 #include <stdint.h>
+#include <string.h>
 #include "pins_arduino.h"
 #include <SPI.h>
 #include <TimerOne.h>
@@ -607,9 +608,8 @@ void disp_datamake(void) {
   }
 
   noInterrupts();      // 割り込み禁止
-  for (i = 0; i < DISP_KETAMAX; i++){
-    disp[i] = dispdata_tmp[i];
-  }
+  
+  memcpy(disp,dispdata_tmp,sizeof(unsigned long)*DISP_KETAMAX); // 表示情報受け渡し
   disp_fadetimei = fadetime_tmpw;               // クロスフェード時間受け渡し
 
   // VFD輝度情報の受け渡し
