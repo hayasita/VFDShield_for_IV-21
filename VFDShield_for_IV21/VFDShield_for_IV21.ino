@@ -862,7 +862,7 @@ void display_blinking_make(uint8_t *disp_tmp, uint8_t *piriod_tmp,uint8_t startp
     blinking_tim_nowl = millis();
   }
   if(blinking_state == 1){
-        for(uint8_t i=0;i<1;i++){
+      for(uint8_t i=0;i<1;i++){
         disp_tmp[startp + i] = DISP_NON;
       }
   }
