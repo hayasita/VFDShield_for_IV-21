@@ -170,7 +170,7 @@ unsigned char brightness_dig[DISP_KETAMAX];   // 表示各桁輝度
 uint8_t *brp;
 #define BR_MAX        15 // 最大輝度
 #define BR_DEF        9  // 輝度初期値
-#define BR_MIN        0  // 最小輝度
+#define BR_MIN        1  // 最小輝度
 #define BR_ADJ_DIGUP  0  // 輝度調整桁変更
 #define BR_ADJ_BRUP   1  // 輝度UP
 #define BR_ADJ_BRDOWN 2  // 輝度DOWN
@@ -1019,7 +1019,7 @@ void eerom_read(void)
   }
 
   for(uint8_t i; i<DISP_KETAMAX ; i++){
-    if(config_data.br_dig[i] > BR_MAX){
+    if((config_data.br_dig[i] < BR_MIN) || (config_data.br_dig[i] > BR_MAX)){
       err = ON;
     }
   }
