@@ -1018,7 +1018,7 @@ void eerom_read(void)
     err = ON;
   }
 
-  for(uint8_t i; i<DISP_KETAMAX ; i++){
+  for(uint8_t i=0; i<DISP_KETAMAX ; i++){
     if((config_data.br_dig[i] < BR_MIN) || (config_data.br_dig[i] > BR_MAX)){
       err = ON;
     }
@@ -1037,7 +1037,7 @@ void eerom_ini(void)
 {
   config_data.format_hw = 1;              // 24h 
   config_data.fadetimew = FADETIME_DEF;   // クロスフェード時間初期値
-  for(uint8_t i; i<DISP_KETAMAX ; i++){
+  for(uint8_t i=0; i<DISP_KETAMAX ; i++){
     config_data.br_dig[i] = BR_DEF;
   }
   return;
