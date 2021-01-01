@@ -165,12 +165,14 @@ unsigned long font[] = {
 unsigned long disp[DISP_KETAMAX];             // 数値表示データ
 unsigned char disp_p[DISP_KETAMAX];           // 各桁ピリオドデータ
 unsigned long disp_last[DISP_KETAMAX];        // 前回数値表示データ
-unsigned char disp_ketapwm[DISP_KETAMAX] = {  // 各桁輝度初期値
-  15, 15, 15, 15, 15, 15, 15, 15, 15          // 0～15で設定
-};
+//unsigned char disp_ketapwm[DISP_KETAMAX] = {  // 各桁輝度初期値
+//  15, 15, 15, 15, 15, 15, 15, 15, 15          // 0～15で設定
+//};
 #define DISP_PWM_MAX  15                      // 最大輝度0x0f
 unsigned char brightness_dig[DISP_KETAMAX];   // 表示各桁輝度
+//uint8_t brightness_digi[DISP_KETAMAX];        // 表示各桁輝度（割込）
 #define BR_MAX        15 // 最大輝度
+#define BR_DEF        9  // 輝度初期値
 #define BR_MIN        0  // 最小輝度
 #define BR_ADJ_DIGUP  0  // 輝度調整桁変更
 #define BR_ADJ_BRUP   1  // 輝度UP
@@ -185,6 +187,7 @@ uint16_t disp_fadetimei;                      // クロスフェード時間（�
 struct CONFIG_DATA {    // 動作設定値
   uint8_t format_hw;    // 時間表示フォーマット 12/24H
   uint8_t fadetimew;    // クロスフェード時間(1~9)
+  uint8_t br_dig[DISP_KETAMAX];   // 表示各桁輝度
 };
 struct CONFIG_DATA config_data;     // 設定データ
 struct CONFIG_DATA config_tmp;      // 設定データtmp
@@ -350,6 +353,14 @@ void setup() {
   Serial.println(config_data.format_hw);
   Serial.print("config_data.fadetimew : ");
   Serial.println(config_data.fadetimew);
+  Serial.println("config_data.br_dig : ");
+  for(uint8_t i; i<DISP_KETAMAX ; i++){
+    Serial.println(config_data.br_dig[i]);
+  }
+
+  for (uint8_t i = 0; i < 9; i++) {
+    brightness_dig[i] = config_data.br_dig[i];
+  }
 
 }
 
@@ -404,6 +415,9 @@ void modeset_m(unsigned char setmode)
     Serial.println("Mode_M : Set Mode.");
     config_tmp.format_hw = config_data.format_hw;   // 設定用tmp初期化
     config_tmp.fadetimew = config_data.fadetimew;   // 設定用tmp初期化
+    for(uint8_t i; i<DISP_KETAMAX ; i++){           // 輝度情報初期化
+      brightness_dig[i] = config_data.br_dig[i];
+    }
   }
   else{                                           // 仕様外の場合は、表示モード・時計表示とする
     mode_m = MODE_M_DISP;
@@ -450,12 +464,19 @@ void modeset(unsigned char setmode)
   }
   else if (setmode == MODE_BRIGHTNESS_ADJ) {      // VFD輝度調整
     mode = MODE_BRIGHTNESS_ADJ;
+    for(uint8_t i; i<DISP_KETAMAX ; i++){           // 輝度情報更新
+      config_data.br_dig[i] = brightness_dig[i];
+    }
+    eerom_write();                                  // 設定値EEROM書き込み
   }
   else if (setmode == MODE_BRIGHTNESS_ADJ_SET) {      // VFD輝度調整
     adj_point = ADJ_BR1;     // 1桁目から開始する
     adj_runf = OFF;          // 調整実行フラグ初期化
     mode = MODE_BRIGHTNESS_ADJ_SET;
     Serial.println("Mode : Brightness ADJ.");
+//    for(uint8_t i; i<DISP_KETAMAX ; i++){           // 輝度情報初期化
+//      brightness_dig[i] = config_data.br_dig[i];
+//    }
   }
   else if (setmode == MODE_BRIGHTNESS_VIEW) {       // VFD輝度調整
     mode = MODE_BRIGHTNESS_VIEW;
@@ -507,6 +528,7 @@ void disp_datamake(void) {
   unsigned long dispdata_tmp[DISP_KETAMAX];   // 各桁表示データ(font情報)
   unsigned long dispdata;                     // 表示データ作成用tmp
   uint16_t fadetime_tmpw;                     // クロスフェード時間受け渡し用データ
+  uint8_t brightness_dig_tmpw[DISP_KETAMAX];  // 表示各桁輝度受け渡し用データ
 
 #ifdef KEY_TEST
   disp_tmp[0] = key_now % 10;
@@ -594,9 +616,26 @@ void disp_datamake(void) {
     fadetime_tmpw = config_data.fadetimew * 100;
   }
 
+/*
+  if((mode == MODE_BRIGHTNESS_ADJ_SET) || (mode == MODE_BRIGHTNESS_VIEW)){
+    for (i = 0; i < DISP_KETAMAX; i++){
+      brightness_dig_tmpw[i] = brightness_dig[i];
+    }
+  }
+  else{
+    for (i = 0; i < DISP_KETAMAX; i++){
+      brightness_dig_tmpw[i] = config_data.br_dig[i];
+    }
+  }
+*/
+//    for (i = 0; i < DISP_KETAMAX; i++){
+//      brightness_dig_tmpw[i] = config_data.br_dig[i];
+//    }
+
   noInterrupts();      // 割り込み禁止
-  for (i = 0; i < 9; i++) {
+  for (i = 0; i < DISP_KETAMAX; i++){
     disp[i] = dispdata_tmp[i];
+//    brightness_digi[i] = brightness_dig_tmpw[i];
   }
   disp_fadetimei = fadetime_tmpw;               // クロスフェード時間受け渡し
   interrupts();        // 割り込み許可
@@ -982,6 +1021,7 @@ void brightness_adj(unsigned char keyw)  // 輝度調整
   Serial.println(brightness_dig[adj_point - ADJ_BR1]);
   return;
 }
+
 void brightness_ini(void)
 {
   unsigned char i;
@@ -998,7 +1038,7 @@ void brightness_ini(void)
     
     // 輝度情報初期化
     for (i = 0; i < 9; i++) {
-      brightness_dig[i] = disp_ketapwm[i];
+//      brightness_dig[i] = disp_ketapwm[i];
     }
     brightness_eeprom_save();
   }
@@ -1006,6 +1046,7 @@ void brightness_ini(void)
 
   return;
 }
+
 void brightness_eeprom_load(void)    // 輝度をEEPROMから読み出し
 {
 
@@ -1030,6 +1071,12 @@ void eerom_read(void)
     err = ON;
   }
 
+  for(uint8_t i; i<DISP_KETAMAX ; i++){
+    if(config_data.br_dig[i] > BR_MAX){
+      err = ON;
+    }
+  }
+
   if(err == ON){
     eerom_ini();
     eerom_write();
@@ -1043,12 +1090,16 @@ void eerom_ini(void)
 {
   config_data.format_hw = 1;              // 24h 
   config_data.fadetimew = FADETIME_DEF;   // クロスフェード時間初期値
+  for(uint8_t i; i<DISP_KETAMAX ; i++){
+    config_data.br_dig[i] = BR_DEF;
+  }
   return;
 }
 
 // 設定値EEROM書き込み
 void eerom_write(void)
 {
+  Serial.println("EEROM Write.");
   EEPROM.put(0x00,config_data);
 
   return;
@@ -1106,6 +1157,9 @@ void keyman(void)
           else if (mode == MODE_BRIGHTNESS_ADJ_SET) {   // VFD輝度調整実行モード
             brightness_adj(BR_ADJ_DIGUP);                 // VFD輝度調整桁更新
 //            Serial.println(" BRIGHTNESS ADJ DigUp.");
+          }
+          else if(mode == MODE_BRIGHTNESS_VIEW){        // VFD輝度設定値表示
+            modeset(MODE_BRIGHTNESS_ADJ);                 // VFD輝度調整実行モードへ
           }
 
 //          Serial.print(" mode : ");
@@ -1848,7 +1902,7 @@ void disp_ini(void)
   pinMode(VFD_BLANKING, OUTPUT);
   digitalWrite(VFD_BLANKING, LOW);
 
-  brightness_ini();                    // 輝度情報初期化
+//  brightness_ini();                    // 輝度情報初期化
 
   for(i = 0; i < 9; i++){
     disp[i] = 0;            // 数値表示データ初期化
@@ -1916,7 +1970,8 @@ void disp_vfd_iv21(void)
   }
 
   // クロスフェード終了判定
-  if(disp_fadecount[dispketaw] == disp_ketapwm[dispketaw]){ // クロスフェードカウンタ最大値（輝度）到達
+//  if(disp_fadecount[dispketaw] == disp_ketapwm[dispketaw]){ // クロスフェードカウンタ最大値（輝度）到達
+  if(disp_fadecount[dispketaw] == brightness_tmpw){         // クロスフェードカウンタ最大値（輝度）到達
     disp_last[dispketaw] = disp[dispketaw];                 // 前回データに今回データをコピー
     disp_fadecount[dispketaw] = 0;                          // クロスフェードカウンタクリア
   }
