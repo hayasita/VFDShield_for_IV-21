@@ -350,15 +350,24 @@ void setup() {
   Serial.println(config_data.format_hw);
   Serial.print("config_data.fadetimew : ");
   Serial.println(config_data.fadetimew);
-  Serial.println("config_data.br_dig : ");
-  for(uint8_t i; i<DISP_KETAMAX ; i++){
-    Serial.println(config_data.br_dig[i]);
-  }
+  brdat_out();
 
-  for (uint8_t i = 0; i < 9; i++) {
-    brightness_dig[i] = config_data.br_dig[i];
-  }
+}
 
+void brdat_out(void)
+{
+  Serial.print("config_data.br_dig : ");
+  for(uint8_t i=0; i<DISP_KETAMAX ; i++){
+    Serial.print(config_data.br_dig[i]);
+  }
+  Serial.println("");
+  Serial.print("brightness_dig : ");
+  for(uint8_t i=0; i<DISP_KETAMAX ; i++){
+    Serial.print(brightness_dig[i]);
+  }
+  Serial.println("");
+
+  return;
 }
 
 void loop() {
@@ -412,9 +421,8 @@ void modeset_m(unsigned char setmode)
     Serial.println("Mode_M : Set Mode.");
     config_tmp.format_hw = config_data.format_hw;   // 設定用tmp初期化
     config_tmp.fadetimew = config_data.fadetimew;   // 設定用tmp初期化
-    for(uint8_t i; i<DISP_KETAMAX ; i++){           // 輝度情報初期化
-      brightness_dig[i] = config_data.br_dig[i];
-    }
+    memcpy(brightness_dig,config_data.br_dig,DISP_KETAMAX);   // 輝度情報初期化
+    brdat_out();
   }
   else{                                           // 仕様外の場合は、表示モード・時計表示とする
     mode_m = MODE_M_DISP;
@@ -461,9 +469,8 @@ void modeset(unsigned char setmode)
   }
   else if (setmode == MODE_BRIGHTNESS_ADJ) {      // VFD輝度調整
     mode = MODE_BRIGHTNESS_ADJ;
-    for(uint8_t i; i<DISP_KETAMAX ; i++){           // 輝度情報更新
-      config_data.br_dig[i] = brightness_dig[i];
-    }
+    memcpy(config_data.br_dig,brightness_dig,DISP_KETAMAX);   // 輝度情報更新
+    brdat_out();
     eerom_write();                                  // 設定値EEROM書き込み
   }
   else if (setmode == MODE_BRIGHTNESS_ADJ_SET) {      // VFD輝度調整
@@ -471,9 +478,7 @@ void modeset(unsigned char setmode)
     adj_runf = OFF;          // 調整実行フラグ初期化
     mode = MODE_BRIGHTNESS_ADJ_SET;
     Serial.println("Mode : Brightness ADJ.");
-//    for(uint8_t i; i<DISP_KETAMAX ; i++){           // 輝度情報初期化
-//      brightness_dig[i] = config_data.br_dig[i];
-//    }
+    brdat_out();
   }
   else if (setmode == MODE_BRIGHTNESS_VIEW) {       // VFD輝度調整
     mode = MODE_BRIGHTNESS_VIEW;
