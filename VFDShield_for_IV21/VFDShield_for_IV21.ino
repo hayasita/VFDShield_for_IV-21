@@ -171,6 +171,7 @@ unsigned long disp_last[DISP_KETAMAX];        // 前回数値表示データ
 #define DISP_PWM_MAX  15                      // 最大輝度0x0f
 unsigned char brightness_dig[DISP_KETAMAX];   // 表示各桁輝度
 //uint8_t brightness_digi[DISP_KETAMAX];        // 表示各桁輝度（割込）
+uint8_t *brp;
 #define BR_MAX        15 // 最大輝度
 #define BR_DEF        9  // 輝度初期値
 #define BR_MIN        0  // 最小輝度
@@ -528,7 +529,7 @@ void disp_datamake(void) {
   unsigned long dispdata_tmp[DISP_KETAMAX];   // 各桁表示データ(font情報)
   unsigned long dispdata;                     // 表示データ作成用tmp
   uint16_t fadetime_tmpw;                     // クロスフェード時間受け渡し用データ
-  uint8_t brightness_dig_tmpw[DISP_KETAMAX];  // 表示各桁輝度受け渡し用データ
+//  uint8_t brightness_dig_tmpw[DISP_KETAMAX];  // 表示各桁輝度受け渡し用データ
 
 #ifdef KEY_TEST
   disp_tmp[0] = key_now % 10;
@@ -618,26 +619,26 @@ void disp_datamake(void) {
 
 /*
   if((mode == MODE_BRIGHTNESS_ADJ_SET) || (mode == MODE_BRIGHTNESS_VIEW)){
-    for (i = 0; i < DISP_KETAMAX; i++){
-      brightness_dig_tmpw[i] = brightness_dig[i];
-    }
+      brp = brightness_dig;
   }
   else{
-    for (i = 0; i < DISP_KETAMAX; i++){
-      brightness_dig_tmpw[i] = config_data.br_dig[i];
-    }
+      brp = config_data.br_dig;
   }
 */
-//    for (i = 0; i < DISP_KETAMAX; i++){
-//      brightness_dig_tmpw[i] = config_data.br_dig[i];
-//    }
 
   noInterrupts();      // 割り込み禁止
   for (i = 0; i < DISP_KETAMAX; i++){
     disp[i] = dispdata_tmp[i];
-//    brightness_digi[i] = brightness_dig_tmpw[i];
   }
   disp_fadetimei = fadetime_tmpw;               // クロスフェード時間受け渡し
+
+  if((mode == MODE_BRIGHTNESS_ADJ_SET) || (mode == MODE_BRIGHTNESS_VIEW)){
+    brp = brightness_dig;
+  }
+  else{
+    brp = config_data.br_dig;
+  }
+
   interrupts();        // 割り込み許可
 
   return;
@@ -1932,8 +1933,11 @@ void disp_vfd_iv21(void)
   }
 
   // 各桁輝度確認
-  if (brightness_dig[dispketaw] <= DISP_PWM_MAX) {                // 輝度が仕様範囲内
-    brightness_tmpw = brightness_dig[dispketaw];
+//  if (brightness_digi[dispketaw] <= DISP_PWM_MAX) {                // 輝度が仕様範囲内
+//    brightness_tmpw = brightness_digi[dispketaw];
+//  }
+  if (*(brp + dispketaw) <= DISP_PWM_MAX) {                // 輝度が仕様範囲内
+    brightness_tmpw = *(brp + dispketaw);
   }
   else {
     brightness_tmpw = DISP_PWM_MAX;                               // 輝度が仕様範囲外の場合、最大輝度設定
