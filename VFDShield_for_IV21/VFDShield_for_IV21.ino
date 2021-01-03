@@ -446,7 +446,7 @@ void modeset(unsigned char setmode)
   else if (setmode == MODE_CLOCK_ADJ_SET) {
     adj_point = ADJ_HOUR;    // 時間調整から開始する
     adj_runf = OFF;          // 調整実行フラグ初期化
-    adj_data[ADJ_HOUR - ADJ_HOUR] = date_time[2];
+    adj_data[ADJ_HOUR - ADJ_HOUR] = date_time[2] = hour();
     adj_data[ADJ_MIN - ADJ_HOUR] = date_time[1] = minute();
     mode = MODE_CLOCK_ADJ_SET;
     Serial.println("Mode : Clock ADJ.");
@@ -462,8 +462,8 @@ void modeset(unsigned char setmode)
     adj_point = ADJ_YEAR;    // 年調整から開始する
     adj_runf = OFF;          // 調整実行フラグ初期化
     adj_data[ADJ_YEAR - ADJ_YEAR] = year()-2000;
-    adj_data[ADJ_MONTH - ADJ_YEAR] = date_time[5];
-    adj_data[ADJ_DAY - ADJ_YEAR] = date_time[3];
+    adj_data[ADJ_MONTH - ADJ_YEAR] = date_time[5] = month();
+    adj_data[ADJ_DAY - ADJ_YEAR] = date_time[3] = day();
     mode = MODE_CAL_ADJ_SET;
     Serial.println("Mode : Calender ADJ.");
   }
@@ -1487,8 +1487,7 @@ void clock_adj(unsigned char keyw)  // 時刻合わせ
         tim.Year = year();
         RTC.write(tim);
       }
-      modeset_m(MODE_M_DISP); // 通常表示モードへ
-      modeset(MODE_CLOCK);    // 時計表示モードにする
+      modeset(MODE_CLOCK_ADJ);  // 設定完了で時計設定モードへ
     }
     else {
       // 状態遷移異常
@@ -1629,8 +1628,7 @@ void calender_adj(unsigned char keyw)  // カレンダー合わせ
         tim.Year = CalendarYrToTm(2000 + adj_data[ADJ_YEAR - ADJ_YEAR]);
         RTC.write(tim);
       }
-      modeset_m(MODE_M_DISP); // 通常表示モードへ
-      modeset(MODE_CAL);    // カレンダー表示モードにする
+      modeset(MODE_CAL_ADJ);  // 設定完了でカレンダー設定モードへ
     }
     else {
       // 状態遷移異常
