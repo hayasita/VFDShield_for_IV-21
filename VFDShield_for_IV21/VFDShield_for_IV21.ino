@@ -1473,7 +1473,7 @@ void clock_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp) 
   disp_tmp[5] = adj_data[ADJ_HOUR - ADJ_HOUR] % 10;
   disp_tmp[6] = adj_data[ADJ_HOUR - ADJ_HOUR] / 10;
   disp_tmp[7] = DISP_NON;
-  disp_tmp[8] = DISP_NON;
+  disp_tmp[8] = DISP_K1;
 
 
   // 調整桁点滅処理
@@ -1485,6 +1485,7 @@ void clock_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp) 
     else if (adj_point == ADJ_MIN) {
       disp_tmp[3] = disp_tmp[4] = DISP_NON;
     }
+    disp_tmp[8] = DISP_NON;
   }
 
   piriod_tmp[1] = piriod_tmp[3] = piriod_tmp[5] = 0x01;
@@ -1606,7 +1607,7 @@ void calender_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tm
   disp_tmp[5] = DISP_K1;
   disp_tmp[6] = adj_data[ADJ_YEAR - ADJ_YEAR] % 10;
   disp_tmp[7] = adj_data[ADJ_YEAR - ADJ_YEAR] / 10;  //現在年;
-  disp_tmp[8] = DISP_NON;
+  disp_tmp[8] = DISP_K1;
 
   // 調整桁点滅処理
   if (count >= (second_counterw / 2)) {
@@ -1620,6 +1621,7 @@ void calender_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tm
     else if (adj_point == ADJ_DAY) {
       disp_tmp[0] = disp_tmp[1] = DISP_NON;
     }
+    disp_tmp[8] = DISP_NON;
   }
 
   piriod_tmp[1] = piriod_tmp[3] = piriod_tmp[5] = 0x00;
