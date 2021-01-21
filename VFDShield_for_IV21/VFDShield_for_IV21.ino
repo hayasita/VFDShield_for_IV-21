@@ -722,7 +722,7 @@ void disp_alloff(unsigned char *disp_tmp, unsigned char *piriod_tmp) {
   return;
 }
 
-// 12h24h表示切替
+// 12h24h表示切替タイトル
 void clock1224set_adjtitle_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp) {
   char disptxt[] = "12H24H SEL";
   display_scrolldat_make(disp_tmp,piriod_tmp,disptxt,5,5);
@@ -753,11 +753,12 @@ void clock1224set_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tm
   disp_tmp[7] = DISP_03;
   disp_tmp[8] = DISP_K1;
   piriod_tmp[7] = 0x01;
+  display_blinking_make(disp_tmp,piriod_tmp,8,1,1);
 
   return;
 }
 
-// クロスフェード時間設定
+// クロスフェード時間設定タイトル
 void crossfade_adjtitle_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp) {
   char disptxt[] = "CROSS FADE TIME SET";
   display_scrolldat_make(disp_tmp,piriod_tmp,disptxt,5,5);
@@ -778,12 +779,13 @@ void crossfade_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_t
 
   disp_tmp[0] = DISP_00 + config_tmp.fadetimew;
   disp_tmp[8] = DISP_K1;
-  display_blinking_make(disp_tmp,piriod_tmp,0,1);
+  display_blinking_make(disp_tmp,piriod_tmp,0,1,1);
+  display_blinking_make(disp_tmp,piriod_tmp,8,1,1);
 
   return;
 }
 
-// VFD輝度調整
+// VFD輝度調整タイトル
 void brightness_adjtitle_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp) {
   char disptxt[] = "BRIGHTNES SET";
   display_scrolldat_make(disp_tmp,piriod_tmp,disptxt,5,5);
@@ -797,10 +799,11 @@ void brightness_adjtitle_dispdat_make(unsigned char *disp_tmp, unsigned char *pi
 
 // VFD輝度調整実行
 void brightness_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp) {
-  for (unsigned char i = 0; i < 9; i++) {
+  for (unsigned char i = 0; i < 8; i++) {
     disp_tmp[i] = DISP_08;
     piriod_tmp[i] = 0x00;
   }
+  disp_tmp[8] = DISP_K1;
   if (count >= (second_counterw / 2)) {
     // ピリオド消灯処理
     piriod_tmp[adj_point] = 0x00;
@@ -809,6 +812,7 @@ void brightness_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_
     // ピリオド点灯処理
     piriod_tmp[adj_point] = 0x01;
   }
+  display_blinking_make(disp_tmp,piriod_tmp,8,1,1);
 
   return;
 }
@@ -827,6 +831,7 @@ void brightness_dataview_dispdat_make(unsigned char *disp_tmp, unsigned char *pi
     
   }
   disp_tmp[8] = DISP_K1;
+  display_blinking_make(disp_tmp,piriod_tmp,8,1,2);
 
   return;
 }
@@ -834,37 +839,59 @@ void brightness_dataview_dispdat_make(unsigned char *disp_tmp, unsigned char *pi
 /* 表示データ点滅 */
 long blinking_tim_nowl;
 uint8_t blinking_state;
+uint8_t blinking_sqf;
 void display_blinking_make_ini(){
-
   blinking_state = 0;
+  blinking_sqf = 0;
   blinking_tim_nowl = millis();
   return;
 }
-void display_blinking_make(uint8_t *disp_tmp, uint8_t *piriod_tmp,uint8_t startp,uint8_t dispnum)
+void display_blinking_make(uint8_t *disp_tmp, uint8_t *piriod_tmp,uint8_t startp,uint8_t dispnum,uint8_t mode)
 {
-  if(startp > 7){
-    startp = 7;
+  long blink_interval;              // 点滅間隔
+  static uint8_t blink_switch = 0;  // 点滅スイッチ
+
+  if((mode == 0) || (mode > 2)){
+    mode = 1;
+  }
+  if(startp > 8){
+    startp = 8;
   }
   if(dispnum > startp){
     dispnum = startp;
   }
+  blink_interval = 1000 / mode;     // 点滅周期作成
 
-  if( ( millis() - blinking_tim_nowl ) > 1000){
-
+  if( ( millis() - blinking_tim_nowl ) > blink_interval){
     if(blinking_state == 0){
       blinking_state = 1;
-
+      blink_switch = 1;
     }
     else{
       blinking_state = 0;
+      blink_switch = 0;
+      blinking_sqf++;
+    }
+
+    if(mode == 1){            // 連続点滅 010101
+      blinking_sqf = 0;
+    }
+    else if(mode == 2){       // 2回点滅 010100 010100
+      if(blinking_sqf ==2){
+        blink_switch = 1;       // 強制消灯
+      }
+      else if(blinking_sqf >=3){
+        blinking_sqf = 0;
+      }
     }
 
     blinking_tim_nowl = millis();
   }
-  if(blinking_state == 1){
-      for(uint8_t i=0;i<1;i++){
-        disp_tmp[startp + i] = DISP_NON;
-      }
+
+  if(blink_switch == 1){
+    for(uint8_t i=0;i<1;i++){
+      disp_tmp[startp + i] = DISP_NON;
+    }
   }
 
   return;
