@@ -753,7 +753,7 @@ void clock1224set_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tm
   disp_tmp[7] = DISP_03;
   disp_tmp[8] = DISP_K1;
   piriod_tmp[7] = 0x01;
-  display_blinking_make(disp_tmp,piriod_tmp,8,1,1);
+  display_blinking_make(disp_tmp,8,1,1,1000);
 
   return;
 }
@@ -779,8 +779,8 @@ void crossfade_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_t
 
   disp_tmp[0] = DISP_00 + config_tmp.fadetimew;
   disp_tmp[8] = DISP_K1;
-  display_blinking_make(disp_tmp,piriod_tmp,0,1,1);
-  display_blinking_make(disp_tmp,piriod_tmp,8,1,1);
+  display_blinking_make(disp_tmp,0,1,1,1000);
+  display_blinking_make(disp_tmp,8,1,1,1000);
 
   return;
 }
@@ -812,7 +812,8 @@ void brightness_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_
     // ピリオド点灯処理
     piriod_tmp[adj_point] = 0x01;
   }
-  display_blinking_make(disp_tmp,piriod_tmp,8,1,1);
+
+  display_blinking_make(disp_tmp,8,1,1,1000);
 
   return;
 }
@@ -831,7 +832,7 @@ void brightness_dataview_dispdat_make(unsigned char *disp_tmp, unsigned char *pi
     
   }
   disp_tmp[8] = DISP_K1;
-  display_blinking_make(disp_tmp,piriod_tmp,8,1,2);
+  display_blinking_make(disp_tmp,8,1,2,500);
 
   return;
 }
@@ -846,10 +847,9 @@ void display_blinking_make_ini(){
   blinking_tim_nowl = millis();
   return;
 }
-void display_blinking_make(uint8_t *disp_tmp, uint8_t *piriod_tmp,uint8_t startp,uint8_t dispnum,uint8_t mode)
+void display_blinking_make(uint8_t *disp_tmp, uint8_t startp,uint8_t dispnum,uint8_t mode,long blink_interval)
 {
-  long blink_interval;              // 点滅間隔
-  static uint8_t blink_switch = 0;  // 点滅スイッチ
+  uint8_t blink_switch;           // 点滅スイッチ
 
   if((mode == 0) || (mode > 2)){
     mode = 1;
@@ -860,34 +860,33 @@ void display_blinking_make(uint8_t *disp_tmp, uint8_t *piriod_tmp,uint8_t startp
   if(dispnum > startp){
     dispnum = startp;
   }
-  blink_interval = 1000 / mode;     // 点滅周期作成
 
   if( ( millis() - blinking_tim_nowl ) > blink_interval){
+    blinking_tim_nowl = millis();
+
     if(blinking_state == 0){
       blinking_state = 1;
-      blink_switch = 1;
     }
     else{
       blinking_state = 0;
-      blink_switch = 0;
       blinking_sqf++;
     }
-
-    if(mode == 1){            // 連続点滅 010101
-      blinking_sqf = 0;
-    }
-    else if(mode == 2){       // 2回点滅 010100 010100
-      if(blinking_sqf ==2){
-        blink_switch = 1;       // 強制消灯
-      }
-      else if(blinking_sqf >=3){
-        blinking_sqf = 0;
-      }
-    }
-
-    blinking_tim_nowl = millis();
   }
 
+  blink_switch = blinking_state;
+  if(mode == 1){              // 連続点滅 010101
+    blinking_sqf = 0;
+  }
+  else if(mode == 2){         // 2回点滅 010100 010100
+    if(blinking_sqf ==2){
+      blink_switch = 1;         // 強制消灯
+    }
+    else if(blinking_sqf >=3){
+      blinking_sqf = 0;
+    }
+  }
+
+  // 消灯処理
   if(blink_switch == 1){
     for(uint8_t i=0;i<1;i++){
       disp_tmp[startp + i] = DISP_NON;
