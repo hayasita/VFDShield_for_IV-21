@@ -830,6 +830,7 @@ void brightness_dataview_dispdat_make(unsigned char *disp_tmp, unsigned char *pi
       disp_tmp[count] = DISP_A + brightness_dig[count] - 10;
     }
     
+    piriod_tmp[count] = 0x00;
   }
   disp_tmp[8] = DISP_K1;
   display_blinking_make(disp_tmp,8,1,2,500);
