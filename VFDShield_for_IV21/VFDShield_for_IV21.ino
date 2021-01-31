@@ -525,6 +525,7 @@ void disp_datamake(void) {
   unsigned long dispdata_tmp[DISP_KETAMAX];   // 各桁表示データ(font情報)
   unsigned long dispdata;                     // 表示データ作成用tmp
   uint16_t fadetime_tmpw;                     // クロスフェード時間受け渡し用データ
+  uint8_t fade = ON;                          // クロスフェードON/OFF
 
 #ifdef KEY_TEST
   disp_tmp[0] = key_now % 10;
@@ -556,30 +557,35 @@ void disp_datamake(void) {
 
   else if (mode == MODE_CLOCK_ADJ) {                    // 時刻設定
     clock_adjtitle_dispdat_make(disp_tmp, piriod_tmp);
+    fade = OFF;                                         // クロスフェードOFF
   }
   else if (mode == MODE_CLOCK_ADJ_SET) {                // 時刻設定実行
     clock_adj_dispdat_make(disp_tmp, piriod_tmp);
   }
   else if (mode == MODE_CAL_ADJ) {                      // カレンダー設定
     calender_adjtitle_dispdat_make(disp_tmp, piriod_tmp);
+    fade = OFF;                                         // クロスフェードOFF
   }
   else if (mode == MODE_CAL_ADJ_SET) {                  // カレンダー設定実行
     calender_adj_dispdat_make(disp_tmp, piriod_tmp);
   }
   else if (mode == MODE_CLOCK_1224SEL){                 // 12h24h表示切替
     clock1224set_adjtitle_dispdat_make(disp_tmp, piriod_tmp);
+    fade = OFF;                                         // クロスフェードOFF
   }
   else if (mode == MODE_CLOCK_1224SEL_SET){             // 12h24h表示切替実行
     clock1224set_dispdat_make(disp_tmp, piriod_tmp);
   }
   else if (mode == MODE_FADETIME_ADJ){                  // クロスフェード時間設定
     crossfade_adjtitle_dispdat_make(disp_tmp, piriod_tmp);
+    fade = OFF;                                         // クロスフェードOFF
   }
   else if (mode == MODE_FADETIME_ADJ_SET){              // クロスフェード時間設定実行
     crossfade_adj_dispdat_make(disp_tmp, piriod_tmp);
   }
   else if (mode == MODE_BRIGHTNESS_ADJ) {               // VFD輝度調整
     brightness_adjtitle_dispdat_make(disp_tmp, piriod_tmp);
+    fade = OFF;                                         // クロスフェードOFF
   }
   else if (mode == MODE_BRIGHTNESS_ADJ_SET) {           // VFD輝度調整実行
     brightness_adj_dispdat_make(disp_tmp, piriod_tmp);
@@ -605,11 +611,16 @@ void disp_datamake(void) {
   }
 
   // クロスフェード時間作成
-  if(mode == MODE_FADETIME_ADJ_SET){              // クロスフェード時間設定実行
-    fadetime_tmpw = config_tmp.fadetimew * 100;     // 設定用tmpから作成する
+  if(fade == ON){
+    if(mode == MODE_FADETIME_ADJ_SET){              // クロスフェード時間設定実行
+      fadetime_tmpw = config_tmp.fadetimew * 100;     // 設定用tmpから作成する
+    }
+    else{
+      fadetime_tmpw = config_data.fadetimew * 100;
+    }
   }
   else{
-    fadetime_tmpw = config_data.fadetimew * 100;
+    fadetime_tmpw = 0;                              // クロスフェードOFF
   }
 
   noInterrupts();      // 割り込み禁止
