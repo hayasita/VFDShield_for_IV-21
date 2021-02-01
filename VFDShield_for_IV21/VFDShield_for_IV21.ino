@@ -468,14 +468,14 @@ void modeset(unsigned char setmode)
     Serial.println("Mode : Calender ADJ.");
   }
   else if (setmode == MODE_BRIGHTNESS_ADJ) {      // VFD輝度調整
+    adj_point = ADJ_BR1;     // 1桁目から開始する
+    adj_runf = OFF;          // 調整実行フラグ初期化
     mode = MODE_BRIGHTNESS_ADJ;
     memcpy(config_data.br_dig,brightness_dig,DISP_KETAMAX);   // 輝度情報更新
     brdat_out();
     eerom_write();                                  // 設定値EEROM書き込み
   }
   else if (setmode == MODE_BRIGHTNESS_ADJ_SET) {      // VFD輝度調整
-    adj_point = ADJ_BR1;     // 1桁目から開始する
-    adj_runf = OFF;          // 調整実行フラグ初期化
     mode = MODE_BRIGHTNESS_ADJ_SET;
     Serial.println("Mode : Brightness ADJ.");
     brdat_out();
