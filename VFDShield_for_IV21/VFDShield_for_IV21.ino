@@ -14,6 +14,9 @@
 #include <Wire.h>
 #include <EEPROM.h>
 
+#define VERSION "00100S"      // SWバージョン 0.01.00S
+String  version_txt;          // SWバージョン text表示用
+
 #define  ON 1
 #define  OFF 0
 
@@ -182,6 +185,14 @@ uint16_t disp_fadetimei;                      // クロスフェード時間（�
 #define ADJ_UP        1  // UPキー入力
 #define ADJ_DOWN      2  // DOWNキー入力
 
+#define EEROM_HEADER  0x00
+#define EEROM_CONFIG  0x07
+struct HEADER_DATA {
+  uint8_t eerom_header; // EEPROMヘッダ
+  uint8_t version[6];   // SWバージョン
+};
+struct HEADER_DATA header_data;     // EEROMヘッダ
+
 struct CONFIG_DATA {    // 動作設定値
   uint8_t format_hw;    // 時間表示フォーマット 12/24H
   uint8_t fadetimew;    // クロスフェード時間(1~9)
@@ -346,12 +357,39 @@ void setup() {
 
 //  
   eerom_read();     // 設定値EEROM読み出し
+  version_txt_make();
+
+  String strBuf_header = "EEROM_HEADER : 0x";
+  strBuf_header += String(header_data.eerom_header,HEX);
+  Serial.println(strBuf_header);
+
+  Serial.print("Ver.");
+  Serial.println(version_txt);
+
   Serial.print("config_data.format_hw : ");
   Serial.println(config_data.format_hw);
   Serial.print("config_data.fadetimew : ");
   Serial.println(config_data.fadetimew);
   brdat_out();
 
+}
+
+void version_txt_make(void)
+{
+  uint8_t buftmp[9];
+
+  buftmp[0] = header_data.version[0];
+  buftmp[1] = '.';
+  buftmp[2] = header_data.version[1];
+  buftmp[3] = header_data.version[2];
+  buftmp[4] = '.';
+  buftmp[5] = header_data.version[3];
+  buftmp[6] = header_data.version[4];
+  buftmp[7] = header_data.version[5];
+  buftmp[8] = '\0';
+  version_txt = buftmp;
+
+  return;
 }
 
 void brdat_out(void)
@@ -1052,8 +1090,12 @@ void eerom_read(void)
 {
   uint8_t err = OFF;
 
-  EEPROM.get( 0x00, config_data );
+  EEPROM.get( EEROM_HEADER, header_data );
+  EEPROM.get( EEROM_CONFIG, config_data );
 
+  if(header_data.eerom_header != 0x5a){
+    err = ON;
+  }
   if(config_data.format_hw > 1){
     err = ON;
   }
@@ -1078,6 +1120,9 @@ void eerom_read(void)
 // 設定値初期化
 void eerom_ini(void)
 {
+  header_data.eerom_header = 0x5a;        // ヘッダ
+  memcpy(header_data.version,VERSION,6);  // バージョン
+
   config_data.format_hw = 1;              // 24h 
   config_data.fadetimew = FADETIME_DEF;   // クロスフェード時間初期値
   for(uint8_t i=0; i<DISP_KETAMAX ; i++){
@@ -1090,7 +1135,8 @@ void eerom_ini(void)
 void eerom_write(void)
 {
   Serial.println("EEROM Write.");
-  EEPROM.put(0x00,config_data);
+  EEPROM.put(EEROM_HEADER,header_data);
+  EEPROM.put(EEROM_CONFIG,config_data);
 
   return;
 }
