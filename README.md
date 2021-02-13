@@ -4,12 +4,12 @@
 
 ![VFD Shield for IV-21 キット完成写真](https://github.com/hayasita/VFDShield_for_IV-21/blob/images/images/iv21Shield101_KitFront.jpg)
 
-##1． VFD Shield for IV-21 とは
+## 1． VFD Shield for IV-21 とは
 　Arduino UNOまたはMega328を使用している互換機で動作するシールドです。
 　8桁の数字と記号表示1桁を持つ蛍光表示管とリアルタイムクロックIC、操作用のタクトスイッチ3個を搭載しています。
 　[プロジェクトページ](http://www.junkyard.jp/labo/vfd_clock/vfd_shield_for_iv21/index.html)
 
-##2．操作方法
+## 2．操作方法
 
 　電源ONまたはリセットを行うことで、Shieldの初期化を行います。
 　初期化では、CPU内部のEEPROMに保存されている設定情報を読み込んで展開します。
