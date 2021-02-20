@@ -827,7 +827,9 @@ void crossfade_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_t
   }
 
   disp_tmp[0] = DISP_00 + config_tmp.fadetimew;
+  disp_tmp[7] = DISP_04;
   disp_tmp[8] = DISP_K1;
+  piriod_tmp[7] = 0x01;
   display_blinking_make(disp_tmp,0,1,1,1000);
   display_blinking_make(disp_tmp,8,1,1,1000);
 
