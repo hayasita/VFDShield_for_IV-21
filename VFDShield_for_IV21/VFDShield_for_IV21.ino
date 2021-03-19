@@ -216,7 +216,12 @@ class ConfigData {
     uint8_t GetFormatHwTmp(void);   // 時刻表示フォーマットtmp情報取得
     void FormatHchg(void);          // 時刻表示フォーマットtmp切替
 
-    uint8_t *GetBr_digp(void);
+    uint8_t GetFadetimew(void);     // クロスフェード時間情報取得
+    uint8_t GetFadetimewTmp(void);  // クロスフェード時間tmp情報取得
+    void FadetimeAdd(void);         // クロスフェード時間＋
+    void FadetimeDec(void);         // クロスフェード時間－
+
+    uint8_t *GetBr_digp(void);      // 輝度情報ポインタ取得
 
     void Set_brightness_dig(uint8_t *brightness_dig);
 
@@ -251,6 +256,30 @@ void ConfigData::FormatHchg(void)          // 切替
 
   return;
 }
+
+uint8_t ConfigData::GetFadetimew(void)      // クロスフェード時間情報取得
+{
+    return(Config_data.fadetimew);
+}
+uint8_t ConfigData::GetFadetimewTmp(void)   // クロスフェード時間tmp情報取得
+{
+    return(Config_tmp.fadetimew);
+}
+void ConfigData::FadetimeAdd(void)          // クロスフェード時間＋
+{
+  if(Config_tmp.fadetimew < 9){
+    Config_tmp.fadetimew ++;
+  }
+  return;
+}
+void ConfigData::FadetimeDec(void)          // クロスフェード時間－
+{
+  if(Config_tmp.fadetimew > 0){
+    Config_tmp.fadetimew --;
+  }
+  return;
+}
+
 
 void ConfigData::configdata_ini(void)      // configデータ初期化
 {
@@ -729,12 +758,9 @@ void modeset(unsigned char setmode)
     mode = MODE_FADETIME_ADJ;
     VFD_Config.configdata_sync();
     VFD_Config.eeromWrite();
-  //  config_data.fadetimew = config_tmp.fadetimew;   // クロスフェード時間設定更新
-  //  eerom_write();                                  // 設定値EEROM書き込み
   }
   else if (setmode == MODE_FADETIME_ADJ_SET){     // クロスフェード時間設定実行
     mode = MODE_FADETIME_ADJ_SET;
-    config_tmp.fadetimew = config_data.fadetimew;   // クロスフェード時間設定用tmp作成
   }
   else{
   //  mode = setmode;
@@ -844,10 +870,10 @@ void disp_datamake(void) {
   // クロスフェード時間作成
   if(fade == ON){
     if(mode == MODE_FADETIME_ADJ_SET){              // クロスフェード時間設定実行
-      fadetime_tmpw = config_tmp.fadetimew * 100;     // 設定用tmpから作成する
+      fadetime_tmpw = VFD_Config.GetFadetimewTmp() * 100;     // 設定用tmpから作成する
     }
     else{
-      fadetime_tmpw = config_data.fadetimew * 100;
+      fadetime_tmpw = VFD_Config.GetFadetimew() * 100;
     }
   }
   else{
@@ -1022,7 +1048,7 @@ void crossfade_adj_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_t
     piriod_tmp[i] = 0;
   }
 
-  disp_tmp[0] = DISP_00 + config_tmp.fadetimew;
+  disp_tmp[0] = DISP_00 + VFD_Config.GetFadetimewTmp();
   disp_tmp[7] = DISP_04;
   disp_tmp[8] = DISP_K1;
   piriod_tmp[7] = 0x01;
@@ -1233,17 +1259,13 @@ void format_h_make(void)        // 12/24H表示設定
 
 void fadetime_adj(uint8_t keyw)   // クロスフェード時間設定
 {
-  Serial.println(config_tmp.fadetimew);
+  Serial.println(VFD_Config.GetFadetimewTmp());
 
   if (keyw == ADJ_UP){
-    if(config_tmp.fadetimew < 9){
-      config_tmp.fadetimew ++;
-    }
+    VFD_Config.FadetimeAdd();
   }
   else if (keyw == ADJ_DOWN){
-    if(config_tmp.fadetimew > 0){
-      config_tmp.fadetimew --;
-    }
+    VFD_Config.FadetimeDec();
   }
   Serial.println("fadetimew_make");
   Serial.println(config_tmp.fadetimew);
