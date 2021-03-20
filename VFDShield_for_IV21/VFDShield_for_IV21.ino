@@ -170,7 +170,6 @@ unsigned long disp[DISP_KETAMAX];             // 数値表示データ
 unsigned char disp_p[DISP_KETAMAX];           // 各桁ピリオドデータ
 unsigned long disp_last[DISP_KETAMAX];        // 前回数値表示データ
 #define DISP_PWM_MAX  15                      // 最大輝度0x0f
-//unsigned char brightness_dig[DISP_KETAMAX];   // 表示各桁輝度
 uint8_t *brp;
 #define BR_MAX        15 // 最大輝度
 #define BR_DEF        9  // 輝度初期値
@@ -249,15 +248,11 @@ struct HEADER_DATA {
   uint8_t eerom_header; // EEPROMヘッダ
   char version[10];   // SWバージョン
 };
-//struct HEADER_DATA header_data;     // EEROMヘッダ
-
 struct CONFIG_DATA {    // 動作設定値
   uint8_t format_hw;    // 時刻表示フォーマット 12/24H
   uint8_t fadetimew;    // クロスフェード時間(1~9)
   uint8_t br_dig[DISP_KETAMAX];   // 表示各桁輝度
 };
-//struct CONFIG_DATA config_data;     // 設定データ
-//struct CONFIG_DATA config_tmp;      // 設定データtmp
 
 class ConfigData {
   public:
@@ -283,8 +278,6 @@ class ConfigData {
     uint8_t *GetBr_digTmpp(void);   // 輝度情報tmpポインタ取得
     void Br_digAdd(uint8_t adj_point);           // 輝度情報＋
     void Br_digDec(uint8_t adj_point);           // 輝度情報－
-
-//    void Set_brightness_dig(uint8_t *brightness_dig);
 
   private:
     struct HEADER_DATA HeaderData;  // EEROMヘッダ
@@ -353,7 +346,7 @@ void ConfigData::eeromIni(void)
   Config_data.format_hw = 1;              // 24h 
   Config_data.fadetimew = FADETIME_DEF;   // クロスフェード時間初期値
   for(uint8_t i=0; i<DISP_KETAMAX ; i++){
-    Config_data.br_dig[i] = BR_DEF;
+    Config_data.br_dig[i] = BR_DEF;       // 輝度設定値
   }
 
   return;
@@ -381,7 +374,6 @@ void ConfigData::Dataout(void)
   Serial.print("brightness_dig : ");
   for(uint8_t i=0; i<DISP_KETAMAX ; i++){
     Serial.print(Config_tmp.br_dig[i]);
-//    Serial.print(brightness_dig[i]);
   }
   Serial.println("");
 
@@ -447,17 +439,6 @@ void ConfigData::FadetimeDec(void)          // クロスフェード時間－
   }
   return;
 }
-
-/*
-void ConfigData::Set_brightness_dig(uint8_t *brightness_dig)
-{
-//  memcpy(brightness_dig,Config_data.br_dig,DISP_KETAMAX);   // 輝度情報初期化
-//  Serial.println("Testtest");
-//  Serial.println(Config_data.br_dig[0]);
-//  Serial.println(brightness_dig[0]);
-  return;
-}
-*/
 
 uint8_t *ConfigData::GetBr_digp(void)       // 輝度情報ポインタ取得
 {
@@ -592,11 +573,9 @@ void setup() {
   }
 
 //  
-  VFD_Config.eeromRead();
-//  VFD_Config.Set_brightness_dig(brightness_dig);   // 輝度情報初期化
+  VFD_Config.eeromRead();   // 設定値EEROM読み出し
   VFD_Config.Dataout();
 
-//  eerom_read();     // 設定値EEROM読み出し
 //  version_txt_make();
 /*
   String strBuf_header = "EEROM_HEADER : 0x";
@@ -640,7 +619,6 @@ void brdat_out(void)
   Serial.print("config_data.br_dig : ");
   for(uint8_t i=0; i<DISP_KETAMAX ; i++){
     Serial.print(br[i]);
-//    Serial.print(config_data.br_dig[i]);
   }
   Serial.println("");
   Serial.print("brightness_dig : ");
@@ -648,7 +626,6 @@ void brdat_out(void)
   br = VFD_Config.GetBr_digTmpp();
   for(uint8_t i=0; i<DISP_KETAMAX ; i++){
     Serial.print(br[i]);
-//    Serial.print(brightness_dig[i]);
   }
   Serial.println("");
 
@@ -704,9 +681,6 @@ void modeset_m(unsigned char setmode)
   else if (setmode == MODE_M_SET) {               // 設定モード
     mode_m = MODE_M_SET;                            // 設定モードへ
     Serial.println("Mode_M : Set Mode.");
-//    config_tmp.format_hw = config_data.format_hw;   // 設定用tmp初期化
-//    config_tmp.fadetimew = config_data.fadetimew;   // 設定用tmp初期化
-//    memcpy(brightness_dig,config_data.br_dig,DISP_KETAMAX);   // 輝度情報初期化
     VFD_Config.configdata_ini();                  // configデータ初期化
     brdat_out();
   }
@@ -758,10 +732,7 @@ void modeset(unsigned char setmode)
     adj_runf = OFF;          // 調整実行フラグ初期化
     mode = MODE_BRIGHTNESS_ADJ;
     VFD_Config.configdata_sync();
-    VFD_Config.eeromWrite();
-//    memcpy(config_data.br_dig,brightness_dig,DISP_KETAMAX);   // 輝度情報更新
-//    brdat_out();
-//    eerom_write();                                  // 設定値EEROM書き込み
+    VFD_Config.eeromWrite();        // 設定値EEROM書き込み
   }
   else if (setmode == MODE_BRIGHTNESS_ADJ_SET) {  // VFD輝度調整
     mode = MODE_BRIGHTNESS_ADJ_SET;
@@ -778,20 +749,14 @@ void modeset(unsigned char setmode)
   else if (setmode == MODE_CLOCK_1224SEL){
     mode = MODE_CLOCK_1224SEL;
     VFD_Config.configdata_sync();
-    VFD_Config.eeromWrite();
+    VFD_Config.eeromWrite();        // 設定値EEROM書き込み
     Serial.print("SetFormatHw:config_tmp.format_hw:");
     Serial.println(VFD_Config.GetFormatHw());
-//    config_data.format_hw = config_tmp.format_hw;   // 時間表示フォーマット設定更新
-//    eerom_write();                                  // 設定値EEROM書き込み
   }
   else if (setmode == MODE_CLOCK_1224SEL_SET){
     mode = MODE_CLOCK_1224SEL_SET;
-//    config_tmp.format_hw = VFD_Config.GetFormatHw();
     Serial.print("GetFormatHw:config_tmp.format_hw:");
-//    Serial.println(config_tmp.format_hw);
     Serial.println(VFD_Config.GetFormatHwTmp());
-
-//  config_tmp.format_hw = config_data.format_hw;   // 時間表示フォーマット設定用tmp作成
   }
   else if (setmode == MODE_FADETIME_ADJ){         // クロスフェード時間設定
     mode = MODE_FADETIME_ADJ;
@@ -926,11 +891,9 @@ void disp_datamake(void) {
 
   // VFD輝度情報の受け渡し
   if((mode == MODE_BRIGHTNESS_ADJ_SET) || (mode == MODE_BRIGHTNESS_VIEW)){
-//    brp = brightness_dig;
     brp = VFD_Config.GetBr_digTmpp();
   }
   else{
-//    brp = config_data.br_dig;
     brp = VFD_Config.GetBr_digp();
   }
 
@@ -1047,7 +1010,6 @@ void clock1224set_adjtitle_dispdat_make(unsigned char *disp_tmp, unsigned char *
 // 12h24h表示切替実行
 void clock1224set_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp) {
   disp_tmp[0] = DISP_H;
-//  if(config_tmp.format_hw == 1){
   if(VFD_Config.GetFormatHwTmp() == 1){
     disp_tmp[1] = DISP_04;
     disp_tmp[2] = DISP_02;
@@ -1139,14 +1101,6 @@ void brightness_dataview_dispdat_make(unsigned char *disp_tmp, unsigned char *pi
   digdat = VFD_Config.GetBr_digTmpp();
 
   for(count = 0;count<8;count++){
-/*
-    if(brightness_dig[count]<10){
-      disp_tmp[count] = DISP_00 + brightness_dig[count];
-    }
-    else{
-      disp_tmp[count] = DISP_A + brightness_dig[count] - 10;
-    }
-*/
     if(digdat[count]<10){
       disp_tmp[count] = DISP_00 + digdat[count];
     }
@@ -1288,19 +1242,6 @@ void display_scrolldat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp,u
 
 void format_h_make(void)        // 12/24H表示設定
 {
-/*
-  Serial.println(config_data.format_hw);
-  if(config_tmp.format_hw == 1){
-    config_tmp.format_hw = 0;
-  }
-  else{
-    config_tmp.format_hw = 1;
-  }
-  Serial.println("format_h_make");
-  Serial.println(config_tmp.format_hw);
-
-  eerom_write();                // 設定値EEROM書き込み
-*/
   VFD_Config.FormatHchg();
   Serial.println("format_h_make");
   Serial.println(VFD_Config.GetFormatHwTmp());
@@ -1320,7 +1261,6 @@ void fadetime_adj(uint8_t keyw)   // クロスフェード時間設定
   }
   Serial.println("fadetimew_make");
   Serial.println(VFD_Config.GetFadetimewTmp());
-//  Serial.println(config_tmp.fadetimew);
 
   return;
 }
@@ -1340,26 +1280,9 @@ void brightness_adj(unsigned char keyw)  // 輝度調整
   }
   else if (keyw == BR_ADJ_BRUP) { // 輝度UP
     VFD_Config.Br_digAdd(adj_point);
-/*
-
-    if (brightness_dig[adj_point - ADJ_BR1] < BR_MAX) {
-      brightness_dig[adj_point - ADJ_BR1]++;
-    }
-    else {
-      brightness_dig[adj_point - ADJ_BR1] == BR_MAX;
-    }
-*/
   }
   else if (keyw == BR_ADJ_BRDOWN) { // 輝度DOWN
     VFD_Config.Br_digDec(adj_point);
-/*
-    if (brightness_dig[adj_point - ADJ_BR1] > BR_MIN) {
-      brightness_dig[adj_point - ADJ_BR1]--;
-    }
-    else {
-      brightness_dig[adj_point - ADJ_BR1] == BR_MIN;
-    }
-*/
   }
 
   uint8_t *br;
@@ -1367,68 +1290,9 @@ void brightness_adj(unsigned char keyw)  // 輝度調整
   Serial.print("brightness_dig[");
   Serial.print(adj_point - ADJ_BR1);
   Serial.print("]:");
-//  Serial.println(brightness_dig[adj_point - ADJ_BR1]);
   Serial.println(br[adj_point - ADJ_BR1]);
   return;
 }
-/*
-// 設定値EEROM読み出し
-void eerom_read(void)
-{
-  uint8_t err = OFF;
-
-  EEPROM.get( EEROM_HEADER, header_data );
-  EEPROM.get( EEROM_CONFIG, config_data );
-
-  if(header_data.eerom_header != 0x5a){
-    err = ON;
-  }
-  if(config_data.format_hw > 1){
-    err = ON;
-  }
-  if(config_data.fadetimew > 9){    // クロスフェード時間設定値：0～9
-    err = ON;
-  }
-
-  for(uint8_t i=0; i<DISP_KETAMAX ; i++){
-    if((config_data.br_dig[i] < BR_MIN) || (config_data.br_dig[i] > BR_MAX)){
-      err = ON;
-    }
-  }
-
-  if(err == ON){
-    eerom_ini();
-    eerom_write();
-  }
-
-  return;
-}
-
-// 設定値初期化
-void eerom_ini(void)
-{
-  header_data.eerom_header = 0x5a;        // ヘッダ
-  memcpy(header_data.version,VERSION,6);  // バージョン
-
-  config_data.format_hw = 1;              // 24h 
-  config_data.fadetimew = FADETIME_DEF;   // クロスフェード時間初期値
-  for(uint8_t i=0; i<DISP_KETAMAX ; i++){
-    config_data.br_dig[i] = BR_DEF;
-  }
-  return;
-}
-
-// 設定値EEROM書き込み
-void eerom_write(void)
-{
-  Serial.println("EEROM Write.");
-  EEPROM.put(EEROM_HEADER,header_data);
-  EEPROM.put(EEROM_CONFIG,config_data);
-
-  return;
-}
-*/
-
 
 /* キー入力処理 */
 void keyman(void)
@@ -1678,124 +1542,7 @@ void keyman(void)
 
   return;
 }
-/*
-void keyman(void)
-{
-  unsigned int shortonw;
-  unsigned int longonw;
 
-  shortonw = tm.read_s();
-  longonw = tm.read_l();
-
-  if (shortonw != 0) {
-    switch (shortonw) {
-      case 0x01:
-        if (mode == MODE_BRIGHTNESS_ADJ) {
-          brightness_adj(BR_ADJ_DIGUP);
-        }
-        else if (mode == MODE_CAL_ADJ) {
-          calender_adj(CAL_ADJ_DIGUP);
-        }
-        else if (mode == MODE_CLOCK_ADJ) {
-          clock_adj(CL_ADJ_DIGUP);
-        }
-        Serial.println("S1");
-        break;
-      case 0x02:
-        if (mode == MODE_BRIGHTNESS_ADJ) {
-          //          brightness_adj(BR_ADJ_BRUP);
-        }
-        else if (mode == MODE_CAL_ADJ) {
-          calender_adj(CAL_ADJ_UP);
-        }
-        else if (mode == MODE_CLOCK_ADJ) {
-          clock_adj(CL_ADJ_UP);
-        }
-        Serial.println("S2");
-        //        digitalWrite(VFD_BLANKING, HIGH);
-        break;
-      case 0x03:
-        //        Serial.println("S3");
-        break;
-      case 0x04:
-        if (mode == MODE_BRIGHTNESS_ADJ) {
-          //          brightness_adj(BR_ADJ_BRDOWN);
-        }
-        else if (mode == MODE_CAL_ADJ) {
-          calender_adj(CAL_ADJ_DOWN);
-        }
-        else if (mode == MODE_CLOCK_ADJ) {
-          clock_adj(CL_ADJ_DOWN);
-        }
-        //        digitalWrite(VFD_BLANKING, LOW);
-        Serial.println("S4");
-        break;
-      default:
-        //        Serial.println("SOther");
-        break;
-    }
-    //    tm.shorton_keydataw = 0;    // 処理完了　キー入力情報クリア
-#ifdef KEY_TEST
-    key_now = shortonw;
-#endif
-  }
-  else if (longonw != 0) {
-    switch (longonw) {
-      case 0x01:
-        if (mode == MODE_CLOCK) {
-          // 時計設定モードへ
-          modeset(MODE_CLOCK_ADJ);
-        }
-        else if (mode == MODE_CLOCK_ADJ) {
-          // 時計表示モードへ　設定反映せず
-          modeset(MODE_CLOCK);
-        }
-        else if (mode == MODE_CAL) {
-          // カレンダー設定モードへ
-          modeset(MODE_CAL_ADJ);
-        }
-        else if (mode == MODE_CAL_ADJ) {
-          // カレンダー表示モードへ　設定反映せず
-          modeset(MODE_CAL);
-        }
-        //        Serial.println("L1");
-        break;
-      case 0x02:
-        if (mode == MODE_CLOCK) {
-          // カレンダー表示モードへ
-          modeset(MODE_CAL);
-        }
-        else if (mode == MODE_CAL) {
-          // 時計表示モードへ
-          modeset(MODE_CLOCK);
-        }
-        //        Serial.println("L2");
-        break;
-      case 0x03:
-        if (mode == MODE_CLOCK) {
-          // 輝度調整処理へ
-          modeset(MODE_BRIGHTNESS_ADJ);
-        }
-        else if (mode == MODE_BRIGHTNESS_ADJ) {
-          // 輝度調整処理終了
-          modeset(MODE_BRIGHTNESS_SAVE);
-        }
-        //        Serial.println("L3");
-        break;
-      default:
-        //        Serial.println("LOther");
-        break;
-    }
-    //    tm.longon_keydataw = 0;    // 処理完了　キー入力情報クリア
-#ifdef KEY_TEST
-    key_now = longonw * 10;
-#endif
-  }
-  else {}
-
-  return;
-}
-*/
 void clock_adjtitle_dispdat_make(unsigned char *disp_tmp, unsigned char *piriod_tmp){
 
   char disptxt[] = "CLOCK SET";
