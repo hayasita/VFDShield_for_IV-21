@@ -9,7 +9,15 @@
 　8桁の数字と記号表示1桁を持つ蛍光表示管とリアルタイムクロックIC、操作用のタクトスイッチ3個を搭載しています。  
 　[プロジェクトページ](http://www.junkyard.jp/labo/vfd_clock/vfd_shield_for_iv21/index.html)
 
-## 2．操作方法
+## 2．必要ライブラリ
+
+ スケッチの動作には、以下のライブラリが必要です。[Mirror]にリンクしてあるバージョンのライブラリで動作確認を行っています。  
+ TimerOne [Original](https://github.com/PaulStoffregen/TimerOne)   [Mirror](http://www.junkyard.jp/labo/vfd_clock/Sketch/libraries//TimerOne.zip)  
+ Time [Original](http://www.pjrc.com/teensy/td_libs_Time.html)   [Mirror](http://www.junkyard.jp/labo/vfd_clock/Sketch/libraries//Time.zip)  
+ DS1307RTC [Original](http://www.pjrc.com/teensy/td_libs_DS1307RTC.html)   [Mirror](http://www.junkyard.jp/labo/vfd_clock/Sketch/libraries//DS1307RTC.zip)  
+ InputTerminal [Original](https://github.com/hayasita/InputTerminal)   [Mirror](http://www.junkyard.jp/labo/vfd_clock/Sketch/libraries//InputTerminal.zip)  
+
+## 3．操作方法
 
 　シールドの動作は「リセット」「表示モード」「設定モード」の三つの状態があります。  
 　「リセット」終了後は、「表示モード」となります。  
@@ -17,17 +25,17 @@
 　「表示モード」では、表示部の左端に「●」が表示、もしくは点滅表示します。  
 　「設定モード」では、表示部の左端に「ー」が表示、もしくは点滅表示します。  
 
-### 2.1 リセット
+### 3.1 リセット
 　電源ONまたはリセットを行うことで、Shieldの初期化を行います。  
 　初期化では、CPU内部のEEPROMに保存されている設定情報を読み込んで展開します。  
 　設定情報が見つからない、または破損している場合は、設定の初期値をEEPROMに設定します。  
 
-### 2.2 表示モード
+### 3.2 表示モード
 　「表示モード」には、「時計表示」と「カレンダー表示」の表示状態があります。  
 　表示は、SW2かSW3を短押しすることで切り替えることができます。  
 　いずれの表示状態でも、SW1を長押しすることで、「設定モード」への変更が可能です。  
 
-### 2.3 設定モード
+### 3.3 設定モード
 　「設定モード」では、Shield動作の各種設定を行うことができます。  
 　設定モードのどのような状態でも、SW1を長押しすることで「表示モード」に切り替えることができます。  
 　ただし、設定値は設定確定の操作を行わないと記録されず、動作に反映しません。  
