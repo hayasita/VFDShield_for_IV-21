@@ -2083,6 +2083,7 @@ void led_man(unsigned char mode) {
   unsigned char led_comw;
   unsigned char led_tmp;
 
+/*
   if (mode == MODE_BRIGHTNESS_ADJ) {   // VFD輝度調整時LED表示
     led_hedw = 3;
     led_comw = 2;
@@ -2099,7 +2100,9 @@ void led_man(unsigned char mode) {
     led_hedw = 3;
     led_comw = 4;
   }
-  else if (mode == MODE_ERR_CPU_VOLTAGE) {    // CPU電圧エラー
+  else 
+*/
+  if (mode == MODE_ERR_CPU_VOLTAGE) {    // CPU電圧エラー
     led_hedw = 2;
     led_comw = 1;
   }
